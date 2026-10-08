@@ -50,6 +50,11 @@ def resolve_database_url(raw_url: str) -> str:
     if "supabase.com:6543" in url:
         url = url.replace(":6543", ":5432")
 
+    # Enforce SSL requirement for remote PostgreSQL / Supabase
+    if url.startswith("postgresql://") and "sslmode" not in url:
+        sep = "&" if "?" in url else "?"
+        url = f"{url}{sep}sslmode=require"
+
     # Handle serverless read-only filesystem for SQLite if ever selected
     if url.startswith("sqlite"):
         if os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"):

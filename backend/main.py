@@ -6,7 +6,7 @@ from typing import Optional, List
 from fastapi import (
     FastAPI, Depends, HTTPException, status, UploadFile, File, Form, Query
 )
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, EmailStr
@@ -77,6 +77,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    import traceback
+    traceback.print_exc()
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Server error: {str(exc)}"}
+    )
+
 
 # Serve uploaded images statically
 app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
@@ -252,44 +263,59 @@ def serialize_match(match: Match, current_user: Optional[User] = None) -> dict:
 # AUTH ENDPOINTS
 # ==========================================
 @app.post("/api/auth/register")
+@app.post("/auth/register")
 def register(req: RegisterSchema, db: Session = Depends(get_db)):
-    existing = db.query(User).filter(User.email == req.email.lower()).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Email is already registered")
+    try:
+        existing = db.query(User).filter(User.email == req.email.lower().strip()).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Email is already registered")
 
-    user = User(
-        name=req.name.strip(),
-        email=req.email.lower().strip(),
-        password_hash=hash_password(req.password),
-        role="user"
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+        user = User(
+            name=req.name.strip(),
+            email=req.email.lower().strip(),
+            password_hash=hash_password(req.password),
+            role="user"
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
 
-    token = create_access_token({"sub": str(user.id)})
-    return {
-        "access_token": token,
-        "token_type": "bearer",
-        "user": serialize_user(user)
-    }
+        token = create_access_token({"sub": str(user.id)})
+        return {
+            "access_token": token,
+            "token_type": "bearer",
+            "user": serialize_user(user)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 
 @app.post("/api/auth/login")
+@app.post("/auth/login")
 def login(req: LoginSchema, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == req.email.lower().strip()).first()
-    if not user or not verify_password(req.password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Invalid email or password")
+    try:
+        user = db.query(User).filter(User.email == req.email.lower().strip()).first()
+        if not user or not verify_password(req.password, user.password_hash):
+            raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    token = create_access_token({"sub": str(user.id)})
-    return {
-        "access_token": token,
-        "token_type": "bearer",
-        "user": serialize_user(user)
-    }
+        token = create_access_token({"sub": str(user.id)})
+        return {
+            "access_token": token,
+            "token_type": "bearer",
+            "user": serialize_user(user)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 
 @app.get("/api/auth/me")
+@app.get("/auth/me")
 def get_me(current_user: User = Depends(get_current_user)):
     return serialize_user(current_user)
 
