@@ -19,6 +19,12 @@ def load_ai_models():
     if _initialized:
         return
 
+    # In serverless environments (Vercel), skip heavy model weight downloads to prevent cold-start timeouts
+    if os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
+        logger.info("Serverless environment detected (Vercel): Using lightweight vectorizer.")
+        _initialized = True
+        return
+
     logger.info("Initializing AI models...")
 
     # 1. Load Sentence Transformer (all-MiniLM-L6-v2)

@@ -26,9 +26,16 @@ from backend.ai_service import (
 
 # Initialize database directory & uploads
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-UPLOADS_DIR = os.path.join(BASE_DIR, "uploads")
+if os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
+    UPLOADS_DIR = "/tmp/uploads"
+else:
+    UPLOADS_DIR = os.path.join(BASE_DIR, "uploads")
 FRONTEND_DIR = os.path.join(os.path.dirname(BASE_DIR), "frontend")
-os.makedirs(UPLOADS_DIR, exist_ok=True)
+try:
+    os.makedirs(UPLOADS_DIR, exist_ok=True)
+except Exception:
+    UPLOADS_DIR = "/tmp/uploads"
+    os.makedirs(UPLOADS_DIR, exist_ok=True)
 
 
 @asynccontextmanager

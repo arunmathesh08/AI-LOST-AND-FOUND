@@ -21,17 +21,20 @@ if os.path.exists(ENV_PATH):
     except Exception as e:
         print("Database config notice:", e)
 
+# Default Supabase PostgreSQL connection
+DEFAULT_SUPABASE_URL = "postgresql://postgres.ucstlplkimcmdcxeghrp:arun6844684@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres"
+
 # Resolve Database URL (Supabase PostgreSQL / SQLite fallback)
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    f"sqlite:///{os.path.join(BASE_DIR, 'lost_and_found.db')}"
+    DEFAULT_SUPABASE_URL
 ).strip()
 
 
 def resolve_database_url(raw_url: str) -> str:
     """Normalize and format the database URL for SQLAlchemy & PostgreSQL drivers."""
     if not raw_url:
-        return f"sqlite:///{os.path.join(BASE_DIR, 'lost_and_found.db')}"
+        raw_url = DEFAULT_SUPABASE_URL
     
     url = raw_url.strip()
     
@@ -41,6 +44,11 @@ def resolve_database_url(raw_url: str) -> str:
     # Handle postgres scheme compatibility
     if url.startswith("postgres://"):
         url = "postgresql://" + url[len("postgres://"):]
+    
+    # Handle serverless read-only filesystem for SQLite if ever selected
+    if url.startswith("sqlite"):
+        if os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
+            url = "sqlite:////tmp/lost_and_found.db"
     
     # Supabase connection resilience: Test port 6543 vs 5432
     if "supabase.com:6543" in url:
@@ -68,8 +76,8 @@ else:
         RESOLVED_DB_URL,
         pool_pre_ping=True,
         pool_recycle=300,
-        pool_size=10,
-        max_overflow=20
+        pool_size=5,
+        max_overflow=10
     )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
