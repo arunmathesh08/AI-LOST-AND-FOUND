@@ -40,19 +40,26 @@ except Exception:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Create tables and preload AI models
-    Base.metadata.create_all(bind=engine)
-    if engine.dialect.name == "sqlite":
-        with engine.begin() as conn:
-            try:
-                cols = [r[1] for r in conn.exec_driver_sql("PRAGMA table_info(notifications)").fetchall()]
-                if "item_id" not in cols:
-                    conn.exec_driver_sql("ALTER TABLE notifications ADD COLUMN item_id INTEGER")
-                if "finder_name" not in cols:
-                    conn.exec_driver_sql("ALTER TABLE notifications ADD COLUMN finder_name VARCHAR(100)")
-            except Exception as e:
-                print("DB migration check:", e)
-    load_ai_models()
+    # Startup: Create tables and preload AI models safely
+    try:
+        Base.metadata.create_all(bind=engine)
+        if engine.dialect.name == "sqlite":
+            with engine.begin() as conn:
+                try:
+                    cols = [r[1] for r in conn.exec_driver_sql("PRAGMA table_info(notifications)").fetchall()]
+                    if "item_id" not in cols:
+                        conn.exec_driver_sql("ALTER TABLE notifications ADD COLUMN item_id INTEGER")
+                    if "finder_name" not in cols:
+                        conn.exec_driver_sql("ALTER TABLE notifications ADD COLUMN finder_name VARCHAR(100)")
+                except Exception as e:
+                    print("DB migration check:", e)
+    except Exception as e:
+        print("Database startup check warning:", e)
+
+    try:
+        load_ai_models()
+    except Exception as e:
+        print("AI model load warning:", e)
     yield
 
 

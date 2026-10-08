@@ -2,6 +2,7 @@ import os
 import re
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.pool import NullPool
 
 # Load .env if present
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -45,31 +46,33 @@ def resolve_database_url(raw_url: str) -> str:
     if url.startswith("postgres://"):
         url = "postgresql://" + url[len("postgres://"):]
     
+    # Supabase connection resilience: Port 5432 is the universal session pooler port
+    if "supabase.com:6543" in url:
+        url = url.replace(":6543", ":5432")
+
     # Handle serverless read-only filesystem for SQLite if ever selected
     if url.startswith("sqlite"):
         if os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
             url = "sqlite:////tmp/lost_and_found.db"
-    
-    # Supabase connection resilience: Test port 6543 vs 5432
-    if "supabase.com:6543" in url:
-        try:
-            import psycopg
-            # Quick 2-second probe for pooler port 6543
-            with psycopg.connect(url, connect_timeout=2) as conn:
-                pass
-        except Exception:
-            # Fallback to port 5432 (Session mode / direct connection) if pooler port 6543 is unavailable
-            url = url.replace(":6543", ":5432")
 
     return url
 
 
 RESOLVED_DB_URL = resolve_database_url(DATABASE_URL)
 
+is_serverless = bool(os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
+
 if RESOLVED_DB_URL.startswith("sqlite"):
     engine = create_engine(
         RESOLVED_DB_URL,
         connect_args={"check_same_thread": False}
+    )
+elif is_serverless:
+    # NullPool prevents connection exhaustion on Vercel serverless functions
+    engine = create_engine(
+        RESOLVED_DB_URL,
+        poolclass=NullPool,
+        pool_pre_ping=True
     )
 else:
     engine = create_engine(
