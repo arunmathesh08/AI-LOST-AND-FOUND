@@ -1,0 +1,35 @@
+# Environments & Secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Python Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Databases & Local Uploads
+*.sqlite
+*.sqlite3
+*.db
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# IDE & OS Files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

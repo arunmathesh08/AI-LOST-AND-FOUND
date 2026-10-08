@@ -1,0 +1,2661 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>lost2found • AI-Powered Object Matching Platform</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Official Supabase Client SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Outfit', 'sans-serif'],
+          },
+          colors: {
+            primary: {
+              50: '#f0fdfa',
+              100: '#ccfbf1',
+              500: '#0d9488',
+              600: '#0f766e',
+            },
+            brandblue: '#1d4ed8',
+            brandgreen: '#059669',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    .gradient-ai {
+      background: linear-gradient(135deg, #1d4ed8 0%, #0284c7 45%, #059669 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .gradient-btn {
+      background: linear-gradient(90deg, #1d4ed8 0%, #0284c7 50%, #059669 100%);
+      background-size: 200% auto;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .gradient-btn:hover {
+      background-position: right center;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px -5px rgba(2, 132, 199, 0.4);
+    }
+    .gradient-btn:active {
+      transform: translateY(0);
+    }
+    .gradient-line {
+      background: linear-gradient(90deg, #1d4ed8 0%, #0284c7 50%, #059669 100%);
+    }
+    .badge-gradient {
+      background: linear-gradient(135deg, rgba(204, 251, 241, 0.8) 0%, rgba(224, 231, 255, 0.8) 100%);
+      border: 1px solid rgba(13, 148, 136, 0.25);
+    }
+    .dark .badge-gradient {
+      background: linear-gradient(135deg, rgba(15, 118, 110, 0.25) 0%, rgba(30, 58, 138, 0.35) 100%);
+      border: 1px solid rgba(45, 212, 191, 0.3);
+    }
+    .theme-card {
+      transition: all 0.25s ease;
+    }
+    .theme-card:hover {
+      transform: translateY(-3px);
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(8px); }
+    }
+    .floating-indicator {
+      animation: float 2.5s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="bg-white dark:bg-[#090d16] text-slate-900 dark:text-slate-100 min-h-screen flex flex-col antialiased selection:bg-teal-500 selection:text-white">
+
+  <!-- ========================================== -->
+  <!-- TOP NAVIGATION BAR (Exact reference look)  -->
+  <!-- ========================================== -->
+  <header class="sticky top-0 z-50 bg-white/90 dark:bg-[#090d16]/90 backdrop-blur-md border-b border-slate-100 dark:border-slate-800/80 transition-colors">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      
+      <!-- Brand Logo (Rounded box with search magnifying glass + "lost2found") -->
+      <div class="flex items-center space-x-3 cursor-pointer group" onclick="navigate('home')">
+        <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-700 to-teal-500 flex items-center justify-center text-white shadow-md shadow-blue-600/20 group-hover:scale-105 transition">
+          <i data-lucide="search" class="w-5 h-5 text-white"></i>
+        </div>
+        <span class="font-display font-extrabold text-2xl tracking-tight text-slate-950 dark:text-white">
+          lost2found
+        </span>
+      </div>
+
+      <!-- Center Navigation Links -->
+      <nav class="hidden md:flex items-center space-x-8 text-[15px] font-medium text-slate-600 dark:text-slate-300">
+        <button onclick="navigate('home')" id="nav-home" class="hover:text-slate-900 dark:hover:text-white transition font-semibold text-slate-900 dark:text-white">
+          Home
+        </button>
+        <button onclick="navigate('report')" id="nav-report" class="hover:text-slate-900 dark:hover:text-white transition">
+          Report
+        </button>
+        <button onclick="navigate('search')" id="nav-search" class="hover:text-slate-900 dark:hover:text-white transition">
+          Search
+        </button>
+        <button onclick="navigate('stories')" id="nav-stories" class="hover:text-slate-900 dark:hover:text-white transition">
+          Stories
+        </button>
+        <button onclick="navigate('my-items')" id="nav-my-items" class="hover:text-slate-900 dark:hover:text-white transition hidden auth-required">
+          My Items &amp; Matches
+        </button>
+        <button onclick="navigate('admin')" id="nav-admin" class="text-teal-600 dark:text-teal-400 font-semibold hover:underline transition hidden admin-required">
+          Admin Portal
+        </button>
+      </nav>
+
+      <!-- Right Actions: Theme Toggle + Sign In + Get Started Button -->
+      <div class="flex items-center space-x-4 sm:space-x-5">
+        
+        <!-- Theme Toggle Button (Green/Teal Circle with Sun/Moon) -->
+        <button id="theme-toggle-btn" onclick="toggleTheme()" 
+                class="w-10 h-10 rounded-full bg-teal-600 hover:bg-teal-700 text-white flex items-center justify-center shadow-md shadow-teal-600/20 transition-transform active:scale-95"
+                title="Toggle Light / Dark Mode" aria-label="Toggle Theme">
+          <i id="theme-icon" data-lucide="sun" class="w-5 h-5"></i>
+        </button>
+
+        <!-- Notification Bell (when authenticated) -->
+        <button id="btn-notifications" onclick="toggleNotificationsModal()" class="relative p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition hidden auth-required" title="Notifications">
+          <i data-lucide="bell" class="w-5 h-5"></i>
+          <span id="notif-badge" class="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-white dark:ring-slate-900 hidden"></span>
+        </button>
+
+        <!-- Auth Section -->
+        <div id="auth-actions" class="flex items-center space-x-4">
+          <button onclick="openAuthModal('login')" class="text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white transition">
+            Sign in
+          </button>
+          <button onclick="navigate('report')" class="gradient-btn px-5 py-2.5 rounded-xl text-sm font-semibold text-white shadow-md shadow-blue-600/20">
+            Get Started
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================== -->
+  <!-- MAIN VIEW AREA                             -->
+  <!-- ========================================== -->
+  <main class="flex-1 w-full">
+
+    <!-- 1. HOME / HERO LANDING PAGE VIEW -->
+    <section id="view-home" class="relative overflow-hidden flex flex-col items-center justify-center min-h-[calc(100vh-5rem)] px-4 sm:px-6 text-center py-16 sm:py-24">
+      
+      <!-- Subtle background ambient radial glows -->
+      <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-gradient-to-tr from-blue-400/10 via-teal-400/10 to-transparent blur-3xl pointer-events-none -z-10"></div>
+
+      <!-- Top AI Badge -->
+      <div class="mb-8 inline-flex items-center space-x-2 px-4 py-1.5 rounded-full badge-gradient text-teal-800 dark:text-teal-300 text-xs sm:text-sm font-semibold shadow-sm transition hover:scale-105 cursor-default">
+        <i data-lucide="sparkles" class="w-4 h-4 text-teal-600 dark:text-teal-400"></i>
+        <span>AI-Powered Lost &amp; Found Platform</span>
+      </div>
+
+      <!-- Main Hero Heading -->
+      <div class="max-w-4xl mx-auto space-y-2">
+        <h1 class="text-4xl sm:text-6xl md:text-7xl font-extrabold font-display tracking-tight text-slate-950 dark:text-white leading-[1.12]">
+          Lost Items. Smart Matches.
+        </h1>
+        <h1 class="text-4xl sm:text-6xl md:text-7xl font-extrabold font-display tracking-tight text-slate-950 dark:text-white leading-[1.12]">
+          <span class="gradient-ai">Happy Returns.</span>
+        </h1>
+
+        <!-- Thin Blue-to-Green Gradient Underline -->
+        <div class="pt-4 flex justify-center">
+          <div class="w-72 sm:w-96 md:w-[480px] h-1.5 rounded-full gradient-line"></div>
+        </div>
+      </div>
+
+      <!-- Description Subtext -->
+      <p class="mt-8 max-w-2xl mx-auto text-base sm:text-lg text-slate-600 dark:text-slate-300 font-normal leading-relaxed">
+        Reconnect lost items with their rightful owners using intelligent AI-powered matching.
+      </p>
+
+      <!-- Large Centered Get Started Button -->
+      <div class="mt-10">
+        <button onclick="navigate('report')" class="gradient-btn px-8 py-4 rounded-2xl text-base font-bold text-white shadow-xl shadow-teal-500/20 flex items-center space-x-2.5 mx-auto group">
+          <span>Get Started</span>
+          <i data-lucide="arrow-right" class="w-5 h-5 group-hover:translate-x-1 transition-transform"></i>
+        </button>
+      </div>
+
+      <!-- Floating Mouse Scroll Indicator -->
+      <div class="mt-20 floating-indicator opacity-60 text-slate-400 dark:text-slate-500">
+        <div class="w-6 h-10 rounded-full border-2 border-slate-300 dark:border-slate-700 flex items-start justify-center p-1.5 mx-auto">
+          <div class="w-1.5 h-2 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. SEARCH & BROWSE ITEMS VIEW -->
+    <section id="view-search" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 hidden">
+      <div class="border-b border-slate-200 dark:border-slate-800 pb-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-3xl font-display font-extrabold text-slate-950 dark:text-white">Explore Items Directory</h2>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Live database of community-reported lost and found items matched with CLIP ViT-B-32 &amp; MiniLM.</p>
+        </div>
+        <button onclick="navigate('report')" class="gradient-btn px-5 py-2.5 rounded-xl text-sm font-semibold text-white shadow-sm self-start flex items-center space-x-1.5">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>Report New Item</span>
+        </button>
+      </div>
+
+      <!-- Filters & Search Bar -->
+      <div class="bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center gap-3">
+        <div class="relative flex-1 w-full">
+          <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+          <input type="text" id="filter-search" oninput="fetchItems()" placeholder="Search keywords, brand, color, location..."
+                 class="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 transition" />
+        </div>
+        <div class="flex items-center space-x-3 w-full md:w-auto">
+          <select id="filter-type" onchange="fetchItems()" class="flex-1 md:flex-initial bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+            <option value="">All Types (Lost &amp; Found)</option>
+            <option value="lost">Lost Only</option>
+            <option value="found">Found Only</option>
+          </select>
+          <select id="filter-category" onchange="fetchItems()" class="flex-1 md:flex-initial bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+            <option value="">All Categories</option>
+            <option value="Electronics">Electronics</option>
+            <option value="Accessories">Accessories</option>
+            <option value="Personal">Personal</option>
+            <option value="Keys & Wallets">Keys &amp; Wallets</option>
+            <option value="Clothing">Clothing</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Items Grid -->
+      <div id="items-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <!-- Injected via JavaScript -->
+      </div>
+    </section>
+
+    <!-- 3. REPORT LOST / FOUND ITEM VIEW (5-STEP PRIVACY WORKFLOW - LIGHT & DARK THEME) -->
+    <section id="view-report" class="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-8 hidden">
+      
+      <!-- Top Title & Subtitle -->
+      <div class="text-center max-w-2xl mx-auto space-y-2">
+        <h1 class="text-3xl sm:text-4xl font-display font-extrabold text-slate-900 dark:text-white tracking-tight">
+          Submit a Privacy-Protected Report
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-normal">
+          Our multimodal AI will automatically extract attributes and find high-confidence matches.
+        </p>
+      </div>
+
+      <!-- 5-Step Stepper Header -->
+      <div class="max-w-3xl mx-auto px-2 sm:px-6">
+        <div class="relative flex items-center justify-between">
+          <!-- Horizontal Connecting Bar Background -->
+          <div class="absolute top-5 left-8 right-8 h-0.5 bg-slate-200 dark:bg-slate-800 -z-0"></div>
+          <!-- Dynamic Completed Progress Bar -->
+          <div id="stepper-progress-bar" class="absolute top-5 left-8 h-0.5 bg-emerald-500 transition-all duration-300 -z-0" style="width: 0%;"></div>
+
+          <!-- Step 1 -->
+          <div class="flex flex-col items-center relative z-10 cursor-pointer" onclick="goToReportStep(1)">
+            <div id="step-dot-1" class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200 bg-[#5b6cf6] text-white ring-4 ring-[#5b6cf6]/25 shadow-lg shadow-[#5b6cf6]/30">
+              1
+            </div>
+            <span id="step-label-1" class="mt-2 text-xs font-bold text-slate-900 dark:text-white transition-colors">Basic Info</span>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="flex flex-col items-center relative z-10 cursor-pointer" onclick="goToReportStep(2)">
+            <div id="step-dot-2" class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+              2
+            </div>
+            <span id="step-label-2" class="mt-2 text-xs font-medium text-slate-500 dark:text-slate-400 transition-colors">Photo</span>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="flex flex-col items-center relative z-10 cursor-pointer" onclick="goToReportStep(3)">
+            <div id="step-dot-3" class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+              3
+            </div>
+            <span id="step-label-3" class="mt-2 text-xs font-medium text-slate-500 dark:text-slate-400 transition-colors">NLP Details</span>
+          </div>
+
+          <!-- Step 4 -->
+          <div class="flex flex-col items-center relative z-10 cursor-pointer" onclick="goToReportStep(4)">
+            <div id="step-dot-4" class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+              4
+            </div>
+            <span id="step-label-4" class="mt-2 text-xs font-medium text-slate-500 dark:text-slate-400 transition-colors">Approx. Zone</span>
+          </div>
+
+          <!-- Step 5 -->
+          <div class="flex flex-col items-center relative z-10 cursor-pointer" onclick="goToReportStep(5)">
+            <div id="step-dot-5" class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+              5
+            </div>
+            <span id="step-label-5" class="mt-2 text-xs font-medium text-slate-500 dark:text-slate-400 transition-colors">Verification</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Card Container -->
+      <div class="bg-white dark:bg-[#0b1329] border border-slate-200 dark:border-slate-800/80 rounded-[28px] p-6 sm:p-8 text-slate-900 dark:text-white shadow-xl shadow-slate-200/50 dark:shadow-2xl dark:shadow-black/40 relative space-y-6">
+        
+        <!-- STEP 1: Basic Info -->
+        <div id="report-step-1" class="space-y-6">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Step 1: Item Status &amp; Classification</h2>
+          </div>
+
+          <!-- Report Type Toggle -->
+          <div class="space-y-2">
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Report Type</label>
+            <div class="grid grid-cols-2 gap-3 p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800">
+              <button type="button" id="btn-type-lost" onclick="setReportType('lost')" class="py-3 px-4 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center space-x-2 bg-[#3b82f6] text-white shadow-md shadow-blue-500/20">
+                <span class="w-2.5 h-2.5 rounded-full bg-blue-200 inline-block"></span>
+                <span>I Lost an Item</span>
+              </button>
+              <button type="button" id="btn-type-found" onclick="setReportType('found')" class="py-3 px-4 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center space-x-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
+                <span>I Found an Item</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Item Title / Headline -->
+          <div class="space-y-2">
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Item Title / Headline</label>
+            <input type="text" id="report-input-title" placeholder="e.g. Apple AirPods Pro (2nd Gen) in White Case"
+                   class="w-full bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b6cf6] focus:bg-white dark:focus:bg-slate-900 transition" />
+          </div>
+
+          <!-- Category & Date -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="space-y-2">
+              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Category</label>
+              <select id="report-input-category" class="w-full bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b6cf6] focus:bg-white dark:focus:bg-slate-900 transition">
+                <option value="Electronics & Audio">Electronics &amp; Audio</option>
+                <option value="Accessories & Bags">Accessories &amp; Bags</option>
+                <option value="Personal Items & IDs">Personal Items &amp; IDs</option>
+                <option value="Keys & Wallets">Keys &amp; Wallets</option>
+                <option value="Clothing & Wearables">Clothing &amp; Wearables</option>
+                <option value="Documents & Cards">Documents &amp; Cards</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="space-y-2">
+              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Date Lost or Found</label>
+              <input type="date" id="report-input-date"
+                     class="w-full bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b6cf6] focus:bg-white dark:focus:bg-slate-900 transition" />
+            </div>
+          </div>
+
+          <!-- Step 1 Actions -->
+          <div class="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-800/80">
+            <button type="button" onclick="nextReportStep()" class="bg-[#5b6cf6] hover:bg-[#4f5ee3] text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition shadow-md shadow-[#5b6cf6]/20 flex items-center space-x-1.5">
+              <span>Continue</span>
+              <span>→</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 2: Photo -->
+        <div id="report-step-2" class="space-y-6 hidden">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Step 2: Upload Item Photo</h2>
+            <p class="text-xs text-slate-600 dark:text-slate-400 mt-1">
+              Our vision embedding model generates high-dimensional feature vectors to find visual matches. <span class="text-emerald-600 dark:text-emerald-400 font-medium">All EXIF metadata (GPS, camera info) is automatically stripped before saving.</span>
+            </p>
+          </div>
+
+          <!-- Upload Dropzone / Preview -->
+          <div class="border border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-6 bg-slate-50/80 dark:bg-slate-900/50 flex flex-col items-center justify-center min-h-[200px] text-center relative">
+            <input type="file" id="report-step-file-input" accept="image/png, image/jpeg" onchange="handleReportPhotoSelected(event)" class="hidden" />
+
+            <!-- Empty State -->
+            <div id="photo-empty-state" class="space-y-3 cursor-pointer p-4 w-full flex flex-col items-center" onclick="document.getElementById('report-step-file-input').click()">
+              <div class="w-14 h-14 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-[#5b6cf6] shadow-sm">
+                <i data-lucide="image" class="w-7 h-7"></i>
+              </div>
+              <div>
+                <p class="text-sm font-semibold text-slate-800 dark:text-slate-200">Click or drag &amp; drop item photo here</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Supports JPG, PNG (Max 5MB). Strips GPS and camera metadata.</p>
+              </div>
+              <button type="button" class="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition">
+                Browse Files
+              </button>
+            </div>
+
+            <!-- Uploaded Preview State -->
+            <div id="photo-preview-state" class="hidden w-full flex items-center justify-between p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+              <div class="flex items-center space-x-3 text-left">
+                <img id="photo-preview-img" src="" alt="Item Preview" class="w-14 h-14 rounded-xl object-cover border border-slate-200 dark:border-slate-700" />
+                <div>
+                  <h4 class="text-sm font-bold text-slate-900 dark:text-white">Image Ready for Embedding</h4>
+                  <p class="text-xs text-emerald-600 dark:text-emerald-400 font-medium mt-0.5">✓ Metadata stripped • Ready for 128-d visual vectorization</p>
+                </div>
+              </div>
+              <button type="button" onclick="document.getElementById('report-step-file-input').click()" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-xl text-xs font-semibold transition">
+                Change
+              </button>
+            </div>
+          </div>
+
+          <!-- Step 2 Actions -->
+          <div class="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800/80">
+            <button type="button" onclick="prevReportStep()" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold px-5 py-2.5 rounded-xl text-sm transition flex items-center space-x-1.5 border border-slate-200 dark:border-slate-700">
+              <span>←</span>
+              <span>Back</span>
+            </button>
+            <button type="button" onclick="nextReportStep()" class="bg-[#5b6cf6] hover:bg-[#4f5ee3] text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition shadow-md shadow-[#5b6cf6]/20 flex items-center space-x-1.5">
+              <span>Continue</span>
+              <span>→</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 3: NLP Details -->
+        <div id="report-step-3" class="space-y-6 hidden">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Step 3: Description &amp; Semantic Attributes</h2>
+            <p class="text-xs text-slate-600 dark:text-slate-400 mt-1">
+              Describe the item. Our NLP engine automatically extracts attributes such as item type, color, brand, and distinguishing marks.
+            </p>
+          </div>
+
+          <div class="space-y-2">
+            <div class="flex items-center justify-between text-xs">
+              <label class="font-semibold text-slate-700 dark:text-slate-300">Detailed Description</label>
+              <span class="text-slate-500 dark:text-slate-400">Mention colors, brand, materials, stickers, or scratches</span>
+            </div>
+            <textarea id="report-input-desc" rows="4" oninput="updateNLPAttributeExtraction()"
+                      placeholder="e.g. I have lost my key chain with 3 keys and a blue mini flashlight near the library entrance..."
+                      class="w-full bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 rounded-xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b6cf6] focus:bg-white dark:focus:bg-slate-900 transition"></textarea>
+          </div>
+
+          <!-- LIVE NLP ATTRIBUTE EXTRACTION ENGINE -->
+          <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2 text-xs font-bold text-blue-600 dark:text-blue-400">
+                <span>🧠</span>
+                <span class="tracking-wide uppercase">LIVE NLP ATTRIBUTE EXTRACTION ENGINE</span>
+              </div>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">all-MiniLM-L6-v2</span>
+            </div>
+            
+            <div id="nlp-extracted-chips" class="flex flex-wrap gap-2 text-xs">
+              <span class="px-3 py-1 rounded-lg bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">Type your description above to extract attributes...</span>
+            </div>
+          </div>
+
+          <!-- Step 3 Actions -->
+          <div class="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800/80">
+            <button type="button" onclick="prevReportStep()" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold px-5 py-2.5 rounded-xl text-sm transition flex items-center space-x-1.5 border border-slate-200 dark:border-slate-700">
+              <span>←</span>
+              <span>Back</span>
+            </button>
+            <button type="button" onclick="nextReportStep()" class="bg-[#5b6cf6] hover:bg-[#4f5ee3] text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition shadow-md shadow-[#5b6cf6]/20 flex items-center space-x-1.5">
+              <span>Continue</span>
+              <span>→</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 4: Approximate Zone -->
+        <div id="report-step-4" class="space-y-6 hidden">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Step 4: Approximate Location (Privacy Fuzzed)</h2>
+            <p class="text-xs text-slate-600 dark:text-slate-400 mt-1">
+              We never store or display exact addresses or pinpoint coordinates. Locations are automatically fuzzed into a coarse ~1.0 km radius area.
+            </p>
+          </div>
+
+          <!-- Neighborhood / Landmark -->
+          <div class="space-y-2">
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Neighborhood / Landmark</label>
+            <input type="text" id="report-input-location" placeholder="Market St near 4th, Downtown"
+                   class="w-full bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b6cf6] focus:bg-white dark:focus:bg-slate-900 transition" />
+          </div>
+
+          <!-- Privacy Fuzzing Radius -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between text-xs">
+              <label class="font-semibold text-slate-700 dark:text-slate-300">Privacy Fuzzing Radius:</label>
+              <span id="radius-display-val" class="font-bold text-blue-600 dark:text-blue-400">1.0 km</span>
+            </div>
+            <input type="range" id="report-input-radius" min="0.2" max="5.0" step="0.1" value="1.0"
+                   oninput="document.getElementById('radius-display-val').textContent = parseFloat(this.value).toFixed(1) + ' km'"
+                   class="w-full accent-[#3b82f6] cursor-pointer" />
+            <p class="text-[11px] text-slate-500 dark:text-slate-400">Random spatial displacement applied to prevent location tracking and stalking.</p>
+          </div>
+
+          <!-- Preferred Private Contact Method -->
+          <div class="space-y-2">
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Preferred Private Contact Method</label>
+            <select id="report-input-contact-method" class="w-full bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b6cf6] focus:bg-white dark:focus:bg-slate-900 transition">
+              <option value="SafeHaven End-to-End Masked Relay (Recommended)">🔒 SafeHaven End-to-End Masked Relay (Recommended)</option>
+              <option value="In-App Anonymous Chat Relay">🔒 In-App Anonymous Chat Relay</option>
+              <option value="Verified Campus Safety Desk Drop-Off">🔒 Verified Campus Safety Desk Drop-Off</option>
+            </select>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400">Personal contact details will never be visible publicly.</p>
+          </div>
+
+          <!-- Step 4 Actions -->
+          <div class="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800/80">
+            <button type="button" onclick="prevReportStep()" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold px-5 py-2.5 rounded-xl text-sm transition flex items-center space-x-1.5 border border-slate-200 dark:border-slate-700">
+              <span>←</span>
+              <span>Back</span>
+            </button>
+            <button type="button" onclick="nextReportStep()" class="bg-[#5b6cf6] hover:bg-[#4f5ee3] text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition shadow-md shadow-[#5b6cf6]/20 flex items-center space-x-1.5">
+              <span>Continue</span>
+              <span>→</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 5: Verification -->
+        <div id="report-step-5" class="space-y-6 hidden">
+          <!-- Private Ownership Proof Box -->
+          <div class="p-5 rounded-2xl bg-blue-50/60 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40 space-y-4">
+            <div class="flex items-start space-x-3">
+              <div class="w-8 h-8 rounded-xl bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 mt-0.5">
+                <i data-lucide="shield" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white">Store Private Ownership Proof (Hidden from Public)</h3>
+                <p class="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
+                  Enter private distinguishing details (serial numbers, hidden engravings, receipts) that prove this item belongs to you. These will remain strictly private until a match is reviewed.
+                </p>
+              </div>
+            </div>
+
+            <!-- Secret Questions Container -->
+            <div id="secret-questions-container" class="space-y-3">
+              <div class="secret-question-row">
+                <input type="text" placeholder="e.g. What custom initials are engraved inside the hinge?"
+                       class="secret-q-input w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b6cf6] transition" />
+              </div>
+            </div>
+
+            <button type="button" onclick="addSecretQuestionField()" class="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-xl text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
+              <span>+</span>
+              <span>Add Another Secret Question</span>
+            </button>
+          </div>
+
+          <!-- Secret Verification Reference -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between text-xs">
+              <label class="font-semibold text-slate-700 dark:text-slate-300">Secret Verification Reference (Strictly Hidden from Public)</label>
+              <span class="text-slate-500 dark:text-slate-400">Only you can view this to verify claims</span>
+            </div>
+            <textarea id="report-input-secret-ref" rows="3"
+                      placeholder="e.g. Serial ending in 892J, owner initials S.M. 2024, blue inner thread..."
+                      class="w-full bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 rounded-xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b6cf6] focus:bg-white dark:focus:bg-slate-900 transition"></textarea>
+          </div>
+
+          <!-- Step 5 Actions -->
+          <div class="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800/80">
+            <button type="button" onclick="prevReportStep()" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold px-5 py-2.5 rounded-xl text-sm transition flex items-center space-x-1.5 border border-slate-200 dark:border-slate-700">
+              <span>←</span>
+              <span>Back</span>
+            </button>
+            <button type="button" id="btn-publish-report" onclick="publishSecureReport()" class="bg-[#10b981] hover:bg-[#059669] text-white font-bold px-6 py-2.5 rounded-xl text-sm transition shadow-lg shadow-emerald-600/30 flex items-center space-x-2">
+              <span>Publish Secure Report</span>
+              <i data-lucide="shield" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 4. STORIES & IMPACT VIEW -->
+    <section id="view-stories" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 hidden">
+      <div class="text-center max-w-2xl mx-auto space-y-3">
+        <h2 class="text-3xl sm:text-4xl font-display font-extrabold text-slate-950 dark:text-white">Reunited Stories</h2>
+        <p class="text-sm text-slate-600 dark:text-slate-400">Real feedback and experiences from community members who found and returned belongings using lost2found.</p>
+        <div class="pt-1 flex justify-center">
+          <button onclick="openFeedbackModal()" class="gradient-btn px-5 py-2.5 rounded-xl text-xs font-semibold text-white shadow-md shadow-blue-600/20 inline-flex items-center space-x-2">
+            <i data-lucide="message-square-plus" class="w-4 h-4"></i>
+            <span>Share Your Feedback</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Dynamic Stories Grid -->
+      <div id="stories-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
+        <!-- Injected via JavaScript from backend feedback -->
+      </div>
+    </section>
+
+    <!-- 5. MY ITEMS & AI MATCHES VIEW -->
+    <section id="view-my-items" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 hidden">
+      <div class="border-b border-slate-200 dark:border-slate-800 pb-5 flex items-center justify-between">
+        <div>
+          <h2 class="text-3xl font-display font-extrabold text-slate-950 dark:text-white">My Reports &amp; AI Matches</h2>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Review your listings and inspect multimodal AI similarity scores with verified claim workflows.</p>
+        </div>
+        <button onclick="navigate('report')" class="gradient-btn px-4 py-2 rounded-xl text-xs font-semibold text-white">
+          + Report Another
+        </button>
+      </div>
+
+      <div id="my-items-list" class="space-y-6">
+        <!-- Injected via JavaScript -->
+      </div>
+    </section>
+
+    <!-- 6. ADMIN PORTAL VIEW -->
+    <section id="view-admin" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 hidden">
+      <div class="border-b border-slate-200 dark:border-slate-800 pb-5">
+        <h2 class="text-3xl font-display font-extrabold text-slate-950 dark:text-white flex items-center space-x-2">
+          <i data-lucide="shield-check" class="w-7 h-7 text-teal-600 dark:text-teal-400"></i>
+          <span>Administrator Overview</span>
+        </h2>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Live metrics, user reports, item deletion, and claim adjudication.</p>
+      </div>
+
+      <!-- Stats Grid -->
+      <div id="admin-stats-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <!-- Injected via JS -->
+      </div>
+
+      <!-- Admin Listings Table -->
+      <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        <h3 class="text-lg font-bold text-slate-950 dark:text-white">All Reports &amp; Claims</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-700 dark:text-slate-300">
+            <thead class="bg-slate-100 dark:bg-slate-950 text-slate-500 uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-800">
+              <tr>
+                <th class="py-3 px-3">Item</th>
+                <th class="py-3 px-3">Type</th>
+                <th class="py-3 px-3">Category</th>
+                <th class="py-3 px-3">Location / Date</th>
+                <th class="py-3 px-3">Reporter</th>
+                <th class="py-3 px-3">Secret Detail</th>
+                <th class="py-3 px-3">Status</th>
+                <th class="py-3 px-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="admin-items-tbody" class="divide-y divide-slate-100 dark:divide-slate-800">
+              <!-- Injected via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ========================================== -->
+  <!-- MODALS (AUTH, CLAIM, NOTIFICATIONS)        -->
+  <!-- ========================================== -->
+
+  <!-- AUTH MODAL (Login / Register) -->
+  <div id="modal-auth" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 max-w-md w-full rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <h3 id="auth-modal-title" class="text-xl font-display font-bold text-slate-950 dark:text-white">Sign In</h3>
+        <button onclick="closeModal('modal-auth')" class="text-slate-400 hover:text-slate-600 dark:hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <!-- Mode Switcher -->
+      <div class="flex rounded-xl bg-slate-100 dark:bg-slate-950 p-1">
+        <button id="auth-tab-login" onclick="setAuthTab('login')" class="flex-1 py-2 text-xs font-semibold rounded-lg bg-teal-600 text-white transition">Sign In</button>
+        <button id="auth-tab-register" onclick="setAuthTab('register')" class="flex-1 py-2 text-xs font-semibold rounded-lg text-slate-600 dark:text-slate-400 transition">Register</button>
+      </div>
+
+      <form id="modal-auth-form" onsubmit="handleModalAuth(event)" class="space-y-3.5">
+        <div id="auth-field-name" class="hidden">
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Full Name</label>
+          <input type="text" id="modal-auth-name" placeholder="Alex Johnson"
+                 class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Email Address</label>
+          <input type="email" id="modal-auth-email" required placeholder="alex@example.com"
+                 class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Password</label>
+          <input type="password" id="modal-auth-pass" required placeholder="••••••••"
+                 class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none" />
+        </div>
+
+        <div id="auth-field-confirm-pass" class="hidden">
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Confirm Password</label>
+          <input type="password" id="modal-auth-confirm-pass" placeholder="••••••••"
+                 class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none" />
+        </div>
+
+        <button type="submit" id="btn-modal-auth-submit" class="w-full py-2.5 rounded-xl gradient-btn text-white font-bold text-sm shadow-md mt-2">
+          Sign In
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- PRODUCT DETAILS MODAL -->
+  <div id="modal-product-details" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 hidden">
+    <div class="bg-white dark:bg-slate-900 max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 sm:p-8 relative space-y-5">
+      <!-- Back / Close Button -->
+      <button onclick="closeModal('modal-product-details')" class="absolute top-5 right-5 p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition" title="Back to Search">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div id="product-details-content">
+        <!-- Injected dynamically via openProductDetails(itemId) -->
+      </div>
+    </div>
+  </div>
+
+  <!-- EDIT REPORT MODAL -->
+  <div id="modal-edit-report" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 max-w-xl w-full max-h-[90vh] overflow-y-auto rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5 relative">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <h3 class="text-xl font-display font-bold text-slate-950 dark:text-white flex items-center space-x-2">
+          <i data-lucide="pencil" class="w-5 h-5 text-teal-600"></i>
+          <span>Edit Report</span>
+        </h3>
+        <button onclick="closeModal('modal-edit-report')" class="text-slate-400 hover:text-slate-600 dark:hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <form id="edit-report-form" onsubmit="handleEditReportSubmit(event)" class="space-y-4">
+        <input type="hidden" id="edit-item-id" />
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Title *</label>
+            <input type="text" id="edit-title" required class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Category *</label>
+            <select id="edit-category" required class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+              <option value="Electronics">Electronics</option>
+              <option value="Accessories">Accessories</option>
+              <option value="Personal">Personal</option>
+              <option value="Keys & Wallets">Keys &amp; Wallets</option>
+              <option value="Clothing">Clothing</option>
+              <option value="Documents">Documents</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Description *</label>
+          <textarea id="edit-desc" rows="3" required class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"></textarea>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Location *</label>
+            <input type="text" id="edit-location" required class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Date *</label>
+            <input type="date" id="edit-date" required class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Color</label>
+            <input type="text" id="edit-color" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Brand / Model</label>
+            <input type="text" id="edit-brand" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none" />
+          </div>
+        </div>
+
+        <div id="edit-secret-container" class="hidden space-y-1 p-3.5 rounded-2xl bg-teal-50 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800">
+          <label class="block text-xs font-semibold text-teal-700 dark:text-teal-300">Secret Verification Detail (Private)</label>
+          <input type="text" id="edit-secret" class="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none" />
+        </div>
+
+        <div class="flex justify-end space-x-3 pt-2">
+          <button type="button" onclick="closeModal('modal-edit-report')" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">Cancel</button>
+          <button type="submit" id="btn-save-edit" class="gradient-btn px-5 py-2 rounded-xl text-xs font-bold text-white shadow-md">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- CLAIM MODAL (Verification Challenge) -->
+  <div id="modal-claim" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 max-w-md w-full rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <h3 class="text-lg font-bold text-slate-950 dark:text-white flex items-center space-x-2">
+          <i data-lucide="shield" class="w-5 h-5 text-amber-500"></i>
+          <span>Verify Ownership to Claim</span>
+        </h3>
+        <button onclick="closeModal('modal-claim')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <p class="text-xs text-slate-600 dark:text-slate-400">
+        Describe private details known only to the genuine owner (e.g. wallpaper, serial/ID number, internal pocket items).
+      </p>
+      <form onsubmit="handleClaimSubmit(event)" class="space-y-3">
+        <input type="hidden" id="claim-match-id" />
+        <textarea id="claim-answer-input" rows="3" required placeholder="Describe specific private verification details..."
+                  class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"></textarea>
+        <div class="flex justify-end space-x-2 pt-2">
+          <button type="button" onclick="closeModal('modal-claim')" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">Cancel</button>
+          <button type="submit" class="gradient-btn px-4 py-2 rounded-xl text-xs font-bold text-white">Submit Claim Proof</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- FEEDBACK MODAL -->
+  <div id="modal-feedback" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 max-w-md w-full rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5 relative">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-9 h-9 rounded-2xl bg-teal-50 dark:bg-teal-950/60 flex items-center justify-center text-teal-600 dark:text-teal-400 shadow-sm">
+            <i data-lucide="star" class="w-4 h-4 fill-teal-500 text-teal-500"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-display font-bold text-slate-950 dark:text-white">Submit Feedback</h3>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400" id="feedback-user-info">Logged-in community member</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-feedback')" class="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="feedback-form" onsubmit="handleFeedbackSubmit(event)" class="space-y-4">
+        <!-- Star Rating -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Rating (1 to 5 Stars) *</label>
+          <div class="flex items-center space-x-1.5" id="star-rating-container">
+            <button type="button" onclick="setFeedbackRating(1)" class="star-btn p-1 text-amber-400 hover:scale-110 transition" data-val="1" title="1 Star">
+              <i data-lucide="star" class="w-6 h-6 fill-amber-400"></i>
+            </button>
+            <button type="button" onclick="setFeedbackRating(2)" class="star-btn p-1 text-amber-400 hover:scale-110 transition" data-val="2" title="2 Stars">
+              <i data-lucide="star" class="w-6 h-6 fill-amber-400"></i>
+            </button>
+            <button type="button" onclick="setFeedbackRating(3)" class="star-btn p-1 text-amber-400 hover:scale-110 transition" data-val="3" title="3 Stars">
+              <i data-lucide="star" class="w-6 h-6 fill-amber-400"></i>
+            </button>
+            <button type="button" onclick="setFeedbackRating(4)" class="star-btn p-1 text-amber-400 hover:scale-110 transition" data-val="4" title="4 Stars">
+              <i data-lucide="star" class="w-6 h-6 fill-amber-400"></i>
+            </button>
+            <button type="button" onclick="setFeedbackRating(5)" class="star-btn p-1 text-amber-400 hover:scale-110 transition" data-val="5" title="5 Stars">
+              <i data-lucide="star" class="w-6 h-6 fill-amber-400"></i>
+            </button>
+            <span id="rating-label" class="text-xs font-bold text-amber-500 ml-2">5 Stars</span>
+          </div>
+          <input type="hidden" id="feedback-rating-val" value="5" required />
+        </div>
+
+        <!-- Feedback Message -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Feedback Message *</label>
+          <textarea id="feedback-message" rows="4" required placeholder="Share your experience, thoughts, or story with lost2found..."
+                    class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none transition"></textarea>
+        </div>
+
+        <!-- Submit Actions -->
+        <div class="flex items-center justify-end space-x-3 pt-2">
+          <button type="button" onclick="closeModal('modal-feedback')" class="px-4 py-2.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition">Cancel</button>
+          <button type="submit" id="btn-submit-feedback" class="gradient-btn px-6 py-2.5 rounded-xl text-xs font-bold text-white shadow-md">
+            Submit Feedback
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- COMPACT RIGHT-SIDE NOTIFICATIONS DRAWER -->
+  <div id="modal-notifications" class="fixed inset-0 z-50 bg-black/20 flex justify-end items-start p-3 sm:p-5 pt-20 sm:pt-20 hidden" onclick="if(event.target === this) toggleNotificationsModal()">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-sm max-h-[72vh] rounded-3xl border border-slate-200 dark:border-slate-800 p-5 flex flex-col shadow-2xl space-y-3 mr-1 sm:mr-4">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-xl bg-teal-50 dark:bg-teal-950/60 flex items-center justify-center text-teal-600 dark:text-teal-400">
+            <i data-lucide="bell" class="w-4 h-4"></i>
+          </div>
+          <h3 class="text-base font-bold text-slate-950 dark:text-white">Notifications</h3>
+        </div>
+        <div class="flex items-center space-x-3">
+          <button onclick="markAllNotificationsRead()" class="text-xs font-semibold text-teal-600 dark:text-teal-400 hover:underline">Mark all read</button>
+          <button onclick="toggleNotificationsModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Close"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+      </div>
+      <div id="notif-list" class="flex-1 overflow-y-auto space-y-2.5 pr-1 max-h-[52vh]"></div>
+    </div>
+  </div>
+
+  <!-- TOAST ALERTS -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
+
+  <!-- ========================================== -->
+  <!-- JAVASCRIPT APP STATE & LOGIC               -->
+  <!-- ========================================== -->
+  <script>
+    const API_BASE = window.location.origin.includes(':') && !window.location.origin.includes('5500') && !window.location.origin.includes('3000') && !window.location.origin.includes('5173')
+      ? window.location.origin
+      : 'http://localhost:8000';
+
+    let state = {
+      theme: localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
+      token: localStorage.getItem('token') || null,
+      user: JSON.parse(localStorage.getItem('user') || 'null'),
+      currentView: 'home',
+      authTab: 'login',
+      items: [],
+      myItems: [],
+      notifications: []
+    };
+
+    // 1. Theme Management (Light / Dark with localStorage & Sun/Moon icon)
+    function applyTheme(theme) {
+      state.theme = theme;
+      localStorage.setItem('theme', theme);
+      const root = document.documentElement;
+      const themeIcon = document.getElementById('theme-icon');
+
+      if (theme === 'dark') {
+        root.classList.add('dark');
+        root.classList.remove('light');
+        if (themeIcon) themeIcon.setAttribute('data-lucide', 'moon');
+      } else {
+        root.classList.remove('dark');
+        root.classList.add('light');
+        if (themeIcon) themeIcon.setAttribute('data-lucide', 'sun');
+      }
+
+      // Synchronize Report Stepper & Type toggle on theme change
+      if (typeof updateStepperUI === 'function' && typeof reportWizard !== 'undefined') {
+        updateStepperUI(reportWizard.step || 1);
+        setReportType(reportWizard.type || 'lost');
+        updateNLPAttributeExtraction();
+      }
+
+      lucide.createIcons();
+    }
+
+    function toggleTheme() {
+      applyTheme(state.theme === 'dark' ? 'light' : 'dark');
+    }
+
+    // 2. Navigation Router
+    function navigate(viewName) {
+      state.currentView = viewName;
+      ['home', 'search', 'report', 'stories', 'my-items', 'admin'].forEach(v => {
+        const el = document.getElementById(`view-${v}`);
+        if (el) el.classList.add('hidden');
+      });
+
+      const target = document.getElementById(`view-${viewName}`);
+      if (target) target.classList.remove('hidden');
+
+      // Update Nav active styling
+      ['home', 'report', 'search', 'stories', 'my-items', 'admin'].forEach(v => {
+        const btn = document.getElementById(`nav-${v}`);
+        if (btn) {
+          btn.classList.remove('font-bold', 'text-slate-950', 'dark:text-white');
+        }
+      });
+      const activeBtn = document.getElementById(`nav-${viewName}`);
+      if (activeBtn) {
+        activeBtn.classList.add('font-bold', 'text-slate-950', 'dark:text-white');
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      if (viewName === 'search') fetchItems();
+      if (viewName === 'stories') fetchStories();
+      if (viewName === 'my-items') fetchMyItems();
+      if (viewName === 'admin') fetchAdminDashboard();
+      if (viewName === 'report') {
+        const dateInput = document.getElementById('report-input-date');
+        if (dateInput && !dateInput.value) {
+          dateInput.value = new Date().toISOString().split('T')[0];
+        }
+        updateStepperUI(reportWizard.step || 1);
+      }
+    }
+
+    // 3. Auth UI Sync
+    function updateAuthUI() {
+      const authActions = document.getElementById('auth-actions');
+      const authReqEls = document.querySelectorAll('.auth-required');
+      const adminReqEls = document.querySelectorAll('.admin-required');
+
+      if (state.token && state.user) {
+        authReqEls.forEach(el => el.classList.remove('hidden'));
+        if (state.user.role === 'admin') adminReqEls.forEach(el => el.classList.remove('hidden'));
+        else adminReqEls.forEach(el => el.classList.add('hidden'));
+
+        authActions.innerHTML = `
+          <div class="flex items-center space-x-3">
+            <span class="text-xs font-semibold text-slate-700 dark:text-slate-300 hidden sm:inline">
+              ${state.user.name}
+            </span>
+            <button onclick="logout()" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:text-rose-500 transition" title="Sign Out">
+              <i data-lucide="log-out" class="w-4 h-4"></i>
+            </button>
+          </div>
+        `;
+        fetchNotifications();
+      } else {
+        authReqEls.forEach(el => el.classList.add('hidden'));
+        adminReqEls.forEach(el => el.classList.add('hidden'));
+        authActions.innerHTML = `
+          <button onclick="openAuthModal('login')" class="text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white transition">
+            Sign in
+          </button>
+          <button onclick="navigate('report')" class="gradient-btn px-5 py-2.5 rounded-xl text-sm font-semibold text-white shadow-md shadow-blue-600/20">
+            Get Started
+          </button>
+        `;
+      }
+      lucide.createIcons();
+    }
+
+    function openAuthModal(mode = 'login') {
+      setAuthTab(mode);
+      document.getElementById('modal-auth').classList.remove('hidden');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    function setAuthTab(mode) {
+      state.authTab = mode;
+      const tabLogin = document.getElementById('auth-tab-login');
+      const tabReg = document.getElementById('auth-tab-register');
+      const nameField = document.getElementById('auth-field-name');
+      const confirmField = document.getElementById('auth-field-confirm-pass');
+      const confirmInput = document.getElementById('modal-auth-confirm-pass');
+      const submitBtn = document.getElementById('btn-modal-auth-submit');
+      const title = document.getElementById('auth-modal-title');
+
+      if (mode === 'login') {
+        tabLogin.className = 'flex-1 py-2 text-xs font-semibold rounded-lg bg-teal-600 text-white transition';
+        tabReg.className = 'flex-1 py-2 text-xs font-semibold rounded-lg text-slate-600 dark:text-slate-400 transition';
+        nameField.classList.add('hidden');
+        if (confirmField) confirmField.classList.add('hidden');
+        if (confirmInput) {
+          confirmInput.required = false;
+          confirmInput.value = '';
+        }
+        submitBtn.textContent = 'Sign In';
+        title.textContent = 'Sign In';
+      } else {
+        tabReg.className = 'flex-1 py-2 text-xs font-semibold rounded-lg bg-teal-600 text-white transition';
+        tabLogin.className = 'flex-1 py-2 text-xs font-semibold rounded-lg text-slate-600 dark:text-slate-400 transition';
+        nameField.classList.remove('hidden');
+        if (confirmField) confirmField.classList.remove('hidden');
+        if (confirmInput) confirmInput.required = true;
+        submitBtn.textContent = 'Create Account';
+        title.textContent = 'Create Account';
+      }
+    }
+
+    function getSupabase() {
+      return (window.lost2foundSupabase && window.lost2foundSupabase.getClient()) || null;
+    }
+
+    async function handleModalAuth(e) {
+      e.preventDefault();
+      const email = document.getElementById('modal-auth-email').value.trim();
+      const password = document.getElementById('modal-auth-pass').value;
+      const sb = getSupabase();
+
+      if (state.authTab === 'register') {
+        const confirmPassword = document.getElementById('modal-auth-confirm-pass').value;
+        if (!password || !confirmPassword) {
+          showToast('Both password fields are required.', 'error');
+          return;
+        }
+        if (password !== confirmPassword) {
+          showToast('Passwords do not match.', 'error');
+          return;
+        }
+      }
+
+      const submitBtn = document.getElementById('btn-modal-auth-submit');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Authenticating...';
+      }
+
+      try {
+        if (sb) {
+          // --- Supabase Authentication ---
+          if (state.authTab === 'register') {
+            const name = document.getElementById('modal-auth-name').value.trim() || 'Community Member';
+            const { data, error } = await sb.auth.signUp({
+              email,
+              password,
+              options: { data: { name } }
+            });
+            if (error) throw error;
+            if (data.user) {
+              // Ensure profile row exists in public.profiles table
+              try {
+                await sb.from('profiles').upsert({
+                  id: data.user.id,
+                  name: name,
+                  email: email,
+                  role: 'user'
+                });
+              } catch (profErr) {
+                console.warn('Profile upsert note:', profErr);
+              }
+
+              const userObj = { id: data.user.id, name, email, role: 'user' };
+              state.token = data.session ? data.session.access_token : 'sb-session';
+              state.user = userObj;
+              localStorage.setItem('token', state.token);
+              localStorage.setItem('user', JSON.stringify(userObj));
+              closeModal('modal-auth');
+              showToast(`Welcome to lost2found, ${name}!`, 'success');
+              updateAuthUI();
+              return;
+            }
+          } else {
+            // Login
+            const { data, error } = await sb.auth.signInWithPassword({ email, password });
+            if (error) throw error;
+            if (data.user) {
+              let name = data.user.user_metadata?.name || email.split('@')[0];
+              let role = 'user';
+              try {
+                const { data: profile } = await sb.from('profiles').select('*').eq('id', data.user.id).single();
+                if (profile) {
+                  name = profile.name || name;
+                  role = profile.role || role;
+                }
+              } catch (profErr) {
+                console.warn('Profile fetch note:', profErr);
+              }
+
+              const userObj = { id: data.user.id, name, email, role };
+              state.token = data.session.access_token;
+              state.user = userObj;
+              localStorage.setItem('token', state.token);
+              localStorage.setItem('user', JSON.stringify(userObj));
+              closeModal('modal-auth');
+              showToast(`Welcome back, ${name}!`, 'success');
+              updateAuthUI();
+              return;
+            }
+          }
+        }
+
+        // --- Local Backend Fallback ---
+        let endpoint = state.authTab === 'login' ? '/api/auth/login' : '/api/auth/register';
+        let body = { email, password };
+        if (state.authTab === 'register') {
+          body.name = document.getElementById('modal-auth-name').value.trim() || 'Community Member';
+        }
+
+        const res = await fetch(`${API_BASE}${endpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Authentication failed');
+
+        state.token = data.access_token;
+        state.user = data.user;
+        localStorage.setItem('token', data.access_token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+
+        closeModal('modal-auth');
+        showToast(`Welcome, ${data.user.name}!`, 'success');
+        updateAuthUI();
+      } catch (err) {
+        showToast(err.message || 'Authentication error', 'error');
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = state.authTab === 'login' ? 'Sign In' : 'Create Account';
+        }
+      }
+    }
+
+    async function logout() {
+      const sb = getSupabase();
+      if (sb) {
+        try {
+          await sb.auth.signOut();
+        } catch (e) {
+          console.warn('Supabase sign out error:', e);
+        }
+      }
+      state.token = null;
+      state.user = null;
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      showToast('Signed out', 'info');
+      updateAuthUI();
+      navigate('home');
+    }
+
+    function toggleSecretField(show) {
+      const el = document.getElementById('secret-detail-container');
+      if (show) el.classList.remove('hidden');
+      else el.classList.add('hidden');
+    }
+
+    // 4. Items & Search Fetcher (Supabase & REST Dual-Engine)
+    async function fetchItems() {
+      try {
+        const type = document.getElementById('filter-type')?.value || '';
+        const cat = document.getElementById('filter-category')?.value || '';
+        const search = (document.getElementById('filter-search')?.value || '').toLowerCase().trim();
+        const sb = getSupabase();
+
+        if (sb) {
+          let query = sb.from('items').select('*').order('created_at', { ascending: false });
+          if (type) query = query.eq('type', type);
+          if (cat) query = query.ilike('category', `%${cat}%`);
+
+          const { data: sbItems, error } = await query;
+          if (!error && sbItems) {
+            let filtered = sbItems;
+            if (search) {
+              filtered = sbItems.filter(item => {
+                const combined = `${item.title || ''} ${item.description || ''} ${item.brand || ''} ${item.location || ''} ${item.category || ''}`.toLowerCase();
+                return combined.includes(search);
+              });
+            }
+            state.items = filtered;
+            renderItemsGrid(filtered);
+            return;
+          }
+        }
+
+        // Local Backend REST Fallback
+        let url = `${API_BASE}/api/items?status=open`;
+        if (type) url += `&type=${type}`;
+        if (cat) url += `&category=${cat}`;
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+
+        const res = await fetch(url);
+        const items = await res.json();
+        state.items = items;
+        renderItemsGrid(items);
+      } catch (err) {
+        console.error('Fetch items error:', err);
+      }
+    }
+
+    function getProductImage(item) {
+      if (item.image_url) {
+        return item.image_url;
+      }
+
+      const titleLower = (item.title || '').toLowerCase();
+      const descLower = (item.description || '').toLowerCase();
+      const text = `${titleLower} ${descLower}`;
+
+      if (text.includes('casio')) {
+        return 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?w=600&auto=format&fit=crop&q=80';
+      }
+      if (text.includes('apple watch') || text.includes('smartwatch') || text.includes('series 8')) {
+        return 'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?w=600&auto=format&fit=crop&q=80';
+      }
+      if (text.includes('ray-ban') || text.includes('sunglass') || text.includes('aviator')) {
+        return 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=600&auto=format&fit=crop&q=80';
+      }
+      if (text.includes('sony') || text.includes('headphone') || text.includes('wh-1000xm5')) {
+        return 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop&q=80';
+      }
+      if (text.includes('hydro flask') || text.includes('bottle') || text.includes('flask')) {
+        return 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=600&auto=format&fit=crop&q=80';
+      }
+      if (text.includes('wallet') || text.includes('fossil')) {
+        return 'https://images.unsplash.com/photo-1627123424574-724758594e93?w=600&auto=format&fit=crop&q=80';
+      }
+      if (text.includes('iphone')) {
+        return 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=600&auto=format&fit=crop&q=80';
+      }
+      if (item.image_path) {
+        return `${API_BASE}${item.image_path}`;
+      }
+      return 'https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?w=600&auto=format&fit=crop&q=80';
+    }
+
+    function renderItemsGrid(items) {
+      const grid = document.getElementById('items-grid');
+      if (!items || items.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full text-center py-16 text-slate-400 space-y-2">
+            <i data-lucide="inbox" class="w-12 h-12 mx-auto opacity-30"></i>
+            <p class="text-sm">No items found matching your filters.</p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      grid.innerHTML = items.map(item => {
+        const isLost = item.type === 'lost';
+        const typeBadge = isLost
+          ? `<span class="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30">Lost</span>`
+          : `<span class="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/30">Found</span>`;
+
+        const statusBadge = item.status === 'returned'
+          ? `<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-300">Returned</span>`
+          : `<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-500">Open</span>`;
+
+        const imgUrl = getProductImage(item);
+
+        return `
+          <div onclick="openProductDetails(${item.id})" class="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between theme-card cursor-pointer group">
+            <div>
+              <div class="relative h-48 bg-slate-100 dark:bg-slate-950 overflow-hidden group">
+                <img src="${imgUrl}" alt="${item.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?w=400&auto=format&fit=crop&q=60'" />
+                <div class="absolute top-3 left-3 flex items-center space-x-1.5">
+                  ${typeBadge}
+                  ${statusBadge}
+                </div>
+              </div>
+              <div class="p-5 space-y-2">
+                <div class="flex items-center justify-between text-xs text-slate-400">
+                  <span class="font-semibold text-teal-600 dark:text-teal-400">${item.category}</span>
+                  <span>${item.date}</span>
+                </div>
+                <h3 class="font-bold text-base text-slate-900 dark:text-white line-clamp-1 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">${item.title}</h3>
+                <p class="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">${item.description}</p>
+              </div>
+            </div>
+
+            <div class="px-5 pb-5 pt-3 border-t border-slate-100 dark:border-slate-800/80 text-xs text-slate-500 flex items-center justify-between gap-2">
+              <span class="truncate flex items-center space-x-1"><i data-lucide="map-pin" class="w-3.5 h-3.5 shrink-0 inline text-slate-400"></i><span class="truncate">${item.location}</span></span>
+              ${isLost ? `
+                <button onclick="event.stopPropagation(); handleFoundThisClick(${item.id})" class="shrink-0 px-3 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-600 text-teal-700 hover:text-white dark:bg-teal-950/60 dark:hover:bg-teal-600 dark:text-teal-300 dark:hover:text-white border border-teal-500/30 text-xs font-semibold transition flex items-center space-x-1 shadow-sm" title="Notify owner you found this">
+                  <i data-lucide="bell" class="w-3.5 h-3.5"></i>
+                  <span>I Found This</span>
+                </button>
+              ` : (item.brand ? `<span class="font-medium text-slate-600 dark:text-slate-300 truncate">${item.brand}</span>` : '')}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    function openProductDetails(itemId) {
+      const item = state.items.find(i => i.id === itemId);
+      if (!item) return;
+
+      const isLost = item.type === 'lost';
+      const typeBadge = isLost
+        ? `<span class="px-3 py-1 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30">Lost Item</span>`
+        : `<span class="px-3 py-1 rounded-lg text-xs font-bold bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/30">Found Item</span>`;
+
+      const statusBadge = item.status === 'returned'
+        ? `<span class="px-3 py-1 rounded-lg text-xs font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-300 border border-blue-500/20">Status: Returned</span>`
+        : `<span class="px-3 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">Status: Open</span>`;
+
+      const imgUrl = getProductImage(item);
+
+      const contentEl = document.getElementById('product-details-content');
+      contentEl.innerHTML = `
+        <div class="space-y-6">
+          <!-- Large Image -->
+          <div class="relative h-64 sm:h-80 w-full rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+            <img src="${imgUrl}" alt="${item.title}" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?w=400&auto=format&fit=crop&q=60'" />
+            <div class="absolute top-4 left-4 flex items-center space-x-2">
+              ${typeBadge}
+              ${statusBadge}
+            </div>
+          </div>
+
+          <!-- Product Title & Category -->
+          <div class="space-y-2">
+            <div class="flex items-center space-x-2 text-xs font-semibold text-teal-600 dark:text-teal-400">
+              <i data-lucide="tag" class="w-3.5 h-3.5"></i>
+              <span>${item.category}</span>
+            </div>
+            <h2 class="text-2xl sm:text-3xl font-display font-extrabold text-slate-950 dark:text-white leading-tight">
+              ${item.title}
+            </h2>
+          </div>
+
+          <!-- Key Details Grid -->
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs">
+            <div class="space-y-0.5">
+              <span class="text-slate-400 uppercase text-[10px] font-bold tracking-wider">Date Reported</span>
+              <p class="font-semibold text-slate-800 dark:text-slate-200">${item.date || '—'}</p>
+            </div>
+            <div class="space-y-0.5">
+              <span class="text-slate-400 uppercase text-[10px] font-bold tracking-wider">Location</span>
+              <p class="font-semibold text-slate-800 dark:text-slate-200">${item.location || '—'}</p>
+            </div>
+            <div class="space-y-0.5">
+              <span class="text-slate-400 uppercase text-[10px] font-bold tracking-wider">Brand / Model</span>
+              <p class="font-semibold text-slate-800 dark:text-slate-200">${item.brand || '—'}</p>
+            </div>
+            <div class="space-y-0.5">
+              <span class="text-slate-400 uppercase text-[10px] font-bold tracking-wider">Color</span>
+              <p class="font-semibold text-slate-800 dark:text-slate-200">${item.color || '—'}</p>
+            </div>
+            <div class="space-y-0.5">
+              <span class="text-slate-400 uppercase text-[10px] font-bold tracking-wider">Reported By</span>
+              <p class="font-semibold text-slate-800 dark:text-slate-200">${item.reporter_name || (item.contact ? item.contact.name : 'Community Member')}</p>
+            </div>
+            <div class="space-y-0.5">
+              <span class="text-slate-400 uppercase text-[10px] font-bold tracking-wider">AI Pipeline</span>
+              <p class="font-semibold text-teal-600 dark:text-teal-400">CLIP + MiniLM</p>
+            </div>
+          </div>
+
+          <!-- Description Section -->
+          <div class="space-y-1.5">
+            <h4 class="text-xs uppercase font-bold text-slate-400 tracking-wider">Full Description</h4>
+            <p class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed bg-slate-50/50 dark:bg-slate-950/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60">
+              ${item.description || 'No additional description provided.'}
+            </p>
+          </div>
+
+          <!-- Contact / Claim Action -->
+          ${item.contact ? `
+            <div class="p-4 rounded-2xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 text-xs text-teal-800 dark:text-teal-300 space-y-1">
+              <span class="font-bold flex items-center space-x-1.5">
+                <i data-lucide="unlock" class="w-4 h-4"></i>
+                <span>Direct Contact Details Available</span>
+              </span>
+              <p class="text-slate-700 dark:text-slate-300">Name: <strong>${item.contact.name}</strong> • Email: <a href="mailto:${item.contact.email}" class="underline font-semibold text-teal-600 dark:text-teal-400">${item.contact.email}</a></p>
+            </div>
+          ` : `
+            <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div class="space-y-0.5">
+                <span class="font-bold text-slate-800 dark:text-slate-200 flex items-center space-x-1">
+                  <i data-lucide="shield" class="w-3.5 h-3.5 text-teal-500"></i>
+                  <span>${isLost ? 'Recognize this item?' : 'Is this your lost item?'}</span>
+                </span>
+                <p class="text-[11px]">${isLost ? 'Click below to immediately send a notification to the owner that you found it.' : 'Submit a claim to verify ownership using the private detail checkpoint.'}</p>
+              </div>
+              <button onclick="${isLost ? `handleFoundThisClick(${item.id})` : `closeModal('modal-product-details'); navigate('report');`}" class="gradient-btn px-4 py-2 rounded-xl text-white font-bold text-xs whitespace-nowrap self-start sm:self-auto flex items-center space-x-1.5">
+                ${isLost ? '<i data-lucide="bell" class="w-3.5 h-3.5"></i><span>I Found This</span>' : '<span>Claim Ownership</span>'}
+              </button>
+            </div>
+          `}
+
+          <!-- Footer Buttons -->
+          <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <button onclick="closeModal('modal-product-details')" class="px-5 py-2.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition flex items-center space-x-1.5">
+              <i data-lucide="arrow-left" class="w-4 h-4"></i>
+              <span>Back to Search</span>
+            </button>
+            <button onclick="closeModal('modal-product-details')" class="px-5 py-2.5 rounded-xl text-xs font-semibold gradient-btn text-white">
+              Done
+            </button>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('modal-product-details').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    // 5. 5-Step Report Wizard Logic
+    let reportWizard = {
+      step: 1,
+      type: 'lost',
+      photoFile: null,
+      photoDataUrl: null
+    };
+
+    function setReportType(type) {
+      reportWizard.type = type;
+      const btnLost = document.getElementById('btn-type-lost');
+      const btnFound = document.getElementById('btn-type-found');
+
+      if (!btnLost || !btnFound) return;
+
+      if (type === 'lost') {
+        btnLost.className = 'py-3 px-4 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center space-x-2 bg-[#3b82f6] text-white shadow-md shadow-blue-500/20';
+        btnFound.className = 'py-3 px-4 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center space-x-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+      } else {
+        btnFound.className = 'py-3 px-4 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center space-x-2 bg-[#10b981] text-white shadow-md shadow-emerald-500/20';
+        btnLost.className = 'py-3 px-4 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center space-x-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+      }
+    }
+
+    function updateStepperUI(targetStep) {
+      reportWizard.step = targetStep;
+
+      // Update progress bar width
+      const bar = document.getElementById('stepper-progress-bar');
+      if (bar) {
+        const pct = ((targetStep - 1) / 4) * 100;
+        bar.style.width = `${pct}%`;
+      }
+
+      // Update step circles & labels
+      for (let s = 1; s <= 5; s++) {
+        const dot = document.getElementById(`step-dot-${s}`);
+        const label = document.getElementById(`step-label-${s}`);
+        const stepView = document.getElementById(`report-step-${s}`);
+
+        if (stepView) {
+          if (s === targetStep) stepView.classList.remove('hidden');
+          else stepView.classList.add('hidden');
+        }
+
+        if (dot && label) {
+          if (s < targetStep) {
+            // Completed step
+            dot.className = 'w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200 bg-[#10b981] text-white shadow-md shadow-emerald-500/20';
+            dot.innerHTML = '✓';
+            label.className = 'mt-2 text-xs font-medium text-slate-500 dark:text-slate-400 transition-colors';
+          } else if (s === targetStep) {
+            // Current active step
+            dot.className = 'w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200 bg-[#5b6cf6] text-white ring-4 ring-[#5b6cf6]/25 shadow-lg shadow-[#5b6cf6]/30';
+            dot.innerHTML = `${s}`;
+            label.className = 'mt-2 text-xs font-bold text-slate-900 dark:text-white transition-colors';
+          } else {
+            // Upcoming step
+            dot.className = 'w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700';
+            dot.innerHTML = `${s}`;
+            label.className = 'mt-2 text-xs font-medium text-slate-400 dark:text-slate-500 transition-colors';
+          }
+        }
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      lucide.createIcons();
+    }
+
+    function validateReportStep(stepNum) {
+      if (stepNum === 1) {
+        const title = document.getElementById('report-input-title')?.value?.trim();
+        const category = document.getElementById('report-input-category')?.value;
+        const date = document.getElementById('report-input-date')?.value;
+        if (!title) {
+          showToast('Please enter an Item Title / Headline.', 'error');
+          return false;
+        }
+        if (!category) {
+          showToast('Please select a Category.', 'error');
+          return false;
+        }
+        if (!date) {
+          showToast('Please select a Date.', 'error');
+          return false;
+        }
+        return true;
+      }
+      if (stepNum === 2) {
+        return true;
+      }
+      if (stepNum === 3) {
+        const desc = document.getElementById('report-input-desc')?.value?.trim();
+        if (!desc) {
+          showToast('Please provide a detailed description.', 'error');
+          return false;
+        }
+        return true;
+      }
+      if (stepNum === 4) {
+        const loc = document.getElementById('report-input-location')?.value?.trim();
+        if (!loc) {
+          showToast('Please specify a neighborhood or landmark.', 'error');
+          return false;
+        }
+        return true;
+      }
+      return true;
+    }
+
+    function nextReportStep() {
+      if (!validateReportStep(reportWizard.step)) return;
+      if (reportWizard.step < 5) {
+        updateStepperUI(reportWizard.step + 1);
+      }
+    }
+
+    function prevReportStep() {
+      if (reportWizard.step > 1) {
+        updateStepperUI(reportWizard.step - 1);
+      }
+    }
+
+    function goToReportStep(targetStep) {
+      if (targetStep <= reportWizard.step) {
+        updateStepperUI(targetStep);
+      } else {
+        for (let s = 1; s < targetStep; s++) {
+          if (!validateReportStep(s)) {
+            updateStepperUI(s);
+            return;
+          }
+        }
+        updateStepperUI(targetStep);
+      }
+    }
+
+    function handleReportPhotoSelected(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      reportWizard.photoFile = file;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        reportWizard.photoDataUrl = event.target.result;
+        const previewImg = document.getElementById('photo-preview-img');
+        const previewState = document.getElementById('photo-preview-state');
+        const emptyState = document.getElementById('photo-empty-state');
+
+        if (previewImg) previewImg.src = event.target.result;
+        if (emptyState) emptyState.classList.add('hidden');
+        if (previewState) previewState.classList.remove('hidden');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function updateNLPAttributeExtraction() {
+      const desc = document.getElementById('report-input-desc')?.value || '';
+      const title = document.getElementById('report-input-title')?.value || '';
+      const combined = `${title} ${desc}`.toLowerCase();
+      const chipsContainer = document.getElementById('nlp-extracted-chips');
+      if (!chipsContainer) return;
+
+      if (!combined.trim()) {
+        chipsContainer.innerHTML = `<span class="px-3 py-1 rounded-lg bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">Type your description above to extract attributes...</span>`;
+        return;
+      }
+
+      const colorsList = ['black', 'white', 'silver', 'space gray', 'blue', 'titanium', 'red', 'green', 'gold', 'yellow', 'purple', 'brown', 'pink', 'orange', 'navy'];
+      const brandsList = ['apple', 'sony', 'casio', 'ray-ban', 'fossil', 'hydro flask', 'samsung', 'bose', 'dell', 'lenovo', 'nike', 'adidas', 'patagonia'];
+      const typesList = ['airpods', 'headphones', 'earphones', 'phone', 'iphone', 'smartwatch', 'watch', 'sunglasses', 'glasses', 'wallet', 'water bottle', 'bottle', 'key chain', 'keys', 'backpack', 'bag', 'laptop', 'charger', 'id card', 'passport'];
+
+      const detectedColors = colorsList.filter(c => combined.includes(c));
+      const detectedBrands = brandsList.filter(b => combined.includes(b));
+      const detectedTypes = typesList.filter(t => combined.includes(t));
+
+      let chips = [];
+      if (detectedTypes.length > 0) {
+        chips.push(`<span class="px-3 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80 font-medium">📦 Type: ${detectedTypes.join(', ')}</span>`);
+      } else {
+        chips.push(`<span class="px-3 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80 font-medium">📦 Type: Detected Item</span>`);
+      }
+
+      if (detectedColors.length > 0) {
+        chips.push(`<span class="px-3 py-1 rounded-lg bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800/80 font-medium">🎨 Color: ${detectedColors.join(', ')}</span>`);
+      }
+
+      if (detectedBrands.length > 0) {
+        chips.push(`<span class="px-3 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/80 font-medium">🏷️ Brand: ${detectedBrands.join(', ')}</span>`);
+      }
+
+      chips.push(`<span class="px-3 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 font-medium">✨ Semantic Vector: Ready (all-MiniLM-L6-v2)</span>`);
+
+      chipsContainer.innerHTML = chips.join('');
+    }
+
+    function addSecretQuestionField() {
+      const container = document.getElementById('secret-questions-container');
+      if (!container) return;
+      const div = document.createElement('div');
+      div.className = 'secret-question-row flex items-center space-x-2';
+      div.innerHTML = `
+        <input type="text" placeholder="e.g. What other distinguishing mark or internal note is present?"
+               class="secret-q-input w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b6cf6] transition" />
+        <button type="button" onclick="this.parentElement.remove()" class="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 border border-slate-200 dark:border-slate-700 transition" title="Remove question">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      `;
+      container.appendChild(div);
+      lucide.createIcons();
+    }
+
+    async function publishSecureReport() {
+      if (!state.token || !state.user) {
+        showToast('Please sign in to report an item.', 'error');
+        openAuthModal('login');
+        return;
+      }
+
+      if (!validateReportStep(1) || !validateReportStep(3) || !validateReportStep(4)) {
+        return;
+      }
+
+      const publishBtn = document.getElementById('btn-publish-report');
+      if (publishBtn) {
+        publishBtn.disabled = true;
+        publishBtn.innerHTML = `<span>Publishing to Database...</span>`;
+      }
+
+      const sb = getSupabase();
+      const title = document.getElementById('report-input-title').value.trim();
+      const category = document.getElementById('report-input-category').value;
+      const description = document.getElementById('report-input-desc').value.trim();
+      const location = document.getElementById('report-input-location').value.trim();
+      const date = document.getElementById('report-input-date').value;
+
+      const combined = `${title} ${description}`.toLowerCase();
+      const colorsList = ['black', 'white', 'silver', 'space gray', 'blue', 'titanium', 'red', 'green', 'gold', 'yellow', 'purple', 'brown', 'pink', 'orange', 'navy'];
+      const brandsList = ['apple', 'sony', 'casio', 'ray-ban', 'fossil', 'hydro flask', 'samsung', 'bose', 'dell', 'lenovo', 'nike', 'adidas', 'patagonia'];
+      const foundColor = colorsList.find(c => combined.includes(c)) || null;
+      const foundBrand = brandsList.find(b => combined.includes(b)) || null;
+
+      const secretQuestions = Array.from(document.querySelectorAll('.secret-q-input')).map(i => i.value.trim()).filter(Boolean);
+      const secretRef = document.getElementById('report-input-secret-ref')?.value?.trim() || '';
+      let secretDetails = [];
+      if (secretQuestions.length > 0) secretDetails.push(`Q: ${secretQuestions.join('; ')}`);
+      if (secretRef) secretDetails.push(`Ref: ${secretRef}`);
+      const secretDetailStr = secretDetails.length > 0 ? secretDetails.join(' | ') : null;
+
+      try {
+        let imageUrl = null;
+
+        // --- Supabase Storage Image Upload ---
+        if (sb && reportWizard.photoFile) {
+          try {
+            const fileExt = reportWizard.photoFile.name.split('.').pop() || 'png';
+            const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
+            const { data: storageData, error: storageErr } = await sb.storage.from('item-images').upload(fileName, reportWizard.photoFile);
+            if (!storageErr && storageData) {
+              const { data: pubData } = sb.storage.from('item-images').getPublicUrl(fileName);
+              if (pubData) imageUrl = pubData.publicUrl;
+            }
+          } catch (stErr) {
+            console.warn('Storage upload notice:', stErr);
+          }
+        }
+
+        // --- Supabase Items Table Insert ---
+        if (sb && state.user?.id) {
+          try {
+            const { data: itemData, error: itemErr } = await sb.from('items').insert({
+              user_id: state.user.id,
+              type: reportWizard.type,
+              title: title,
+              category: category,
+              description: description,
+              color: foundColor,
+              brand: foundBrand,
+              location: location,
+              date: date,
+              image_url: imageUrl,
+              secret_detail: secretDetailStr,
+              status: 'open'
+            }).select().single();
+
+            if (!itemErr && itemData) {
+              showToast(`Report published to Supabase!`, 'success');
+              resetReportWizard();
+              fetchItems();
+              navigate('search');
+              return;
+            }
+          } catch (sbErr) {
+            console.warn('Supabase items insert notice:', sbErr);
+          }
+        }
+
+        // --- Local Backend REST Fallback ---
+        const formData = new FormData();
+        formData.append('type', reportWizard.type);
+        formData.append('title', title);
+        formData.append('category', category);
+        formData.append('description', description);
+        formData.append('location', location);
+        formData.append('date', date);
+        if (foundColor) formData.append('color', foundColor);
+        if (foundBrand) formData.append('brand', foundBrand);
+        if (secretDetailStr) formData.append('secret_detail', secretDetailStr);
+        if (reportWizard.photoFile) formData.append('image', reportWizard.photoFile);
+
+        const res = await fetch(`${API_BASE}/api/items`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${state.token}` },
+          body: formData
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Failed to submit report');
+
+        showToast(`Report published! AI generated ${data.matches_found} candidate match(es).`, 'success');
+        resetReportWizard();
+        navigate('my-items');
+      } catch (err) {
+        showToast(err.message || 'Failed to submit report', 'error');
+      } finally {
+        if (publishBtn) {
+          publishBtn.disabled = false;
+          publishBtn.innerHTML = `<span>Publish Secure Report</span> <i data-lucide="shield" class="w-4 h-4"></i>`;
+          lucide.createIcons();
+        }
+      }
+    }
+
+    function resetReportWizard() {
+      reportWizard = {
+        step: 1,
+        type: 'lost',
+        photoFile: null,
+        photoDataUrl: null
+      };
+      if (document.getElementById('report-input-title')) document.getElementById('report-input-title').value = '';
+      if (document.getElementById('report-input-desc')) document.getElementById('report-input-desc').value = '';
+      if (document.getElementById('report-input-location')) document.getElementById('report-input-location').value = '';
+      if (document.getElementById('report-input-secret-ref')) document.getElementById('report-input-secret-ref').value = '';
+      document.getElementById('photo-empty-state')?.classList.remove('hidden');
+      document.getElementById('photo-preview-state')?.classList.add('hidden');
+      const fileInput = document.getElementById('report-step-file-input');
+      if (fileInput) fileInput.value = '';
+      setReportType('lost');
+      updateStepperUI(1);
+    }
+
+    // 6. My Items & Matches
+    async function fetchMyItems() {
+      if (!state.token) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/my-items`, {
+          headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        const items = await res.json();
+        state.myItems = items;
+        renderMyItems(items);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function renderMyItems(items) {
+      const container = document.getElementById('my-items-list');
+      if (!items || items.length === 0) {
+        container.innerHTML = `
+          <div class="bg-white dark:bg-slate-900 rounded-3xl p-12 text-center text-slate-400 space-y-3 border border-slate-200 dark:border-slate-800">
+            <i data-lucide="layers" class="w-12 h-12 mx-auto opacity-30"></i>
+            <p class="text-sm font-medium">You have not submitted any listings yet.</p>
+            <button onclick="navigate('report')" class="gradient-btn px-4 py-2 rounded-xl text-xs font-semibold text-white">Report First Item</button>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = items.map(item => {
+        const isLost = item.type === 'lost';
+        const matches = item.matches || [];
+        const matchesHtml = matches.length === 0
+          ? `<div class="p-4 text-center rounded-2xl bg-slate-50 dark:bg-slate-950 text-xs text-slate-400">No candidate AI matches (>= 55%) found yet. System continues monitoring new incoming submissions.</div>`
+          : matches.map(m => renderMatchCard(m, item)).join('');
+
+        return `
+          <div id="my-item-card-${item.id}" class="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div class="flex items-center space-x-3">
+                <span class="px-2.5 py-1 rounded-md text-xs font-extrabold ${isLost ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30' : 'bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/30'}">
+                  ${isLost ? 'LOST ITEM' : 'FOUND ITEM'}
+                </span>
+                <h3 class="font-display font-bold text-lg text-slate-900 dark:text-white">${item.title}</h3>
+              </div>
+              <div class="flex flex-wrap items-center gap-3 text-xs text-slate-400">
+                <span>${item.date}</span>
+                <span>${item.location}</span>
+                <span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold ${item.status === 'returned' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}">${item.status}</span>
+                
+                <!-- Edit & Delete Action Buttons -->
+                <div class="flex items-center space-x-1.5 pl-2 sm:border-l border-slate-200 dark:border-slate-800">
+                  <button onclick="openEditReportModal(${item.id})" class="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 hover:text-teal-600 dark:hover:text-teal-400 transition flex items-center space-x-1 font-semibold text-xs" title="Edit Report">
+                    <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                    <span>Edit</span>
+                  </button>
+                  <button onclick="deleteUserReport(${item.id})" class="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-700 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 transition flex items-center space-x-1 font-semibold text-xs" title="Delete Report">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    <span>Delete</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-bold text-slate-800 dark:text-slate-200 flex items-center space-x-1.5">
+                  <i data-lucide="sparkles" class="w-3.5 h-3.5 text-teal-500"></i>
+                  <span>Ranked AI Matches (${matches.length})</span>
+                </span>
+                <span class="text-slate-400 text-[11px]">CLIP Image (40%) + MiniLM Text (40%) + Metadata (20%)</span>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                ${matchesHtml}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    function openEditReportModal(itemId) {
+      const item = state.myItems.find(i => i.id === itemId);
+      if (!item) return;
+
+      document.getElementById('edit-item-id').value = item.id;
+      document.getElementById('edit-title').value = item.title || '';
+      document.getElementById('edit-category').value = item.category || 'Electronics';
+      document.getElementById('edit-desc').value = item.description || '';
+      document.getElementById('edit-location').value = item.location || '';
+      document.getElementById('edit-date').value = item.date || '';
+      document.getElementById('edit-color').value = item.color || '';
+      document.getElementById('edit-brand').value = item.brand || '';
+
+      const secretContainer = document.getElementById('edit-secret-container');
+      const secretInput = document.getElementById('edit-secret');
+      if (item.type === 'found') {
+        secretContainer.classList.remove('hidden');
+        secretInput.value = item.secret_detail || '';
+      } else {
+        secretContainer.classList.add('hidden');
+        secretInput.value = '';
+      }
+
+      document.getElementById('modal-edit-report').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    async function handleEditReportSubmit(e) {
+      e.preventDefault();
+      if (!state.token) return;
+
+      const itemId = document.getElementById('edit-item-id').value;
+      const saveBtn = document.getElementById('btn-save-edit');
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = `Saving...`;
+
+      try {
+        const formData = new FormData();
+        formData.append('title', document.getElementById('edit-title').value);
+        formData.append('category', document.getElementById('edit-category').value);
+        formData.append('description', document.getElementById('edit-desc').value);
+        formData.append('location', document.getElementById('edit-location').value);
+        formData.append('date', document.getElementById('edit-date').value);
+
+        const color = document.getElementById('edit-color').value;
+        if (color) formData.append('color', color);
+        const brand = document.getElementById('edit-brand').value;
+        if (brand) formData.append('brand', brand);
+
+        const secret = document.getElementById('edit-secret').value;
+        if (secret) formData.append('secret_detail', secret);
+
+        const res = await fetch(`${API_BASE}/api/items/${itemId}`, {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${state.token}` },
+          body: formData
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Failed to update report');
+
+        closeModal('modal-edit-report');
+        showToast('Report updated successfully!', 'success');
+        fetchMyItems();
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = `Save Changes`;
+      }
+    }
+
+    async function deleteUserReport(itemId) {
+      if (!confirm('Are you sure you want to delete this report?')) return;
+      if (!state.token) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/items/${itemId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Failed to delete report');
+
+        // Immediately remove from state and DOM
+        state.myItems = state.myItems.filter(i => i.id !== itemId);
+        renderMyItems(state.myItems);
+
+        showToast('Report deleted successfully.', 'info');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    function renderMatchCard(m, myItem) {
+      const isLostOwner = myItem.type === 'lost';
+      const opp = isLostOwner ? m.found_item : m.lost_item;
+      const scorePct = m.score_percentage;
+      const imgPct = Math.round(m.img_score * 100);
+      const txtPct = Math.round(m.txt_score * 100);
+
+      return `
+        <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex flex-col justify-between space-y-3">
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-extrabold gradient-ai">${scorePct}% Similarity</span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-teal-500/10 text-teal-600 dark:text-teal-300">${m.status}</span>
+            </div>
+
+            <div class="bg-white dark:bg-slate-900 rounded-xl p-2.5 my-2.5 space-y-1.5 border border-slate-100 dark:border-slate-800">
+              <div class="flex justify-between text-[10px] text-slate-500 font-medium">
+                <span>Text Sim: <strong class="text-blue-600 dark:text-blue-400">${txtPct}%</strong></span>
+                <span>Image Sim: <strong class="text-teal-600 dark:text-teal-400">${imgPct}%</strong></span>
+              </div>
+              <div class="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden flex">
+                <div class="bg-blue-600 h-full" style="width: ${txtPct}%"></div>
+                <div class="bg-teal-500 h-full" style="width: ${imgPct}%"></div>
+              </div>
+            </div>
+
+            <h4 class="font-bold text-sm text-slate-900 dark:text-white">${opp?.title || 'Reported Match'}</h4>
+            <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1">${opp?.description || ''}</p>
+
+            ${m.claim_answer ? `
+              <div class="mt-2 p-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-xs border border-amber-200 dark:border-amber-800">
+                <span class="font-semibold text-amber-800 dark:text-amber-300">Claim Proof:</span> "${m.claim_answer}"
+              </div>
+            ` : ''}
+
+            ${m.status === 'verified' && opp?.contact ? `
+              <div class="mt-2 p-2 rounded-xl bg-teal-50 dark:bg-teal-950/40 text-xs text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
+                <strong>Contact:</strong> ${opp.contact.name} (<a href="mailto:${opp.contact.email}" class="underline">${opp.contact.email}</a>)
+              </div>
+            ` : ''}
+          </div>
+
+          <div class="pt-2 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+            ${isLostOwner && m.status === 'suggested' ? `
+              <button onclick="openClaimModal(${m.id})" class="w-full py-1.5 rounded-xl gradient-btn text-white font-bold text-xs">
+                This is Mine (Claim)
+              </button>
+            ` : ''}
+            ${!isLostOwner && m.status === 'claimed' ? `
+              <div class="flex space-x-2 w-full">
+                <button onclick="handleVerify(${m.id}, 'approve')" class="flex-1 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs">Approve</button>
+                <button onclick="handleVerify(${m.id}, 'reject')" class="px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs">Reject</button>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    function openClaimModal(matchId) {
+      document.getElementById('claim-match-id').value = matchId;
+      document.getElementById('claim-answer-input').value = '';
+      document.getElementById('modal-claim').classList.remove('hidden');
+    }
+
+    async function handleClaimSubmit(e) {
+      e.preventDefault();
+      const matchId = document.getElementById('claim-match-id').value;
+      const answer = document.getElementById('claim-answer-input').value;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/matches/${matchId}/claim`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${state.token}`
+          },
+          body: JSON.stringify({ claim_answer: answer })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Failed');
+        closeModal('modal-claim');
+        showToast('Claim submitted for finder review!', 'success');
+        fetchMyItems();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function handleVerify(matchId, action) {
+      try {
+        const res = await fetch(`${API_BASE}/api/matches/${matchId}/verify`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${state.token}`
+          },
+          body: JSON.stringify({ action })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Failed');
+        showToast(action === 'approve' ? 'Claim verified! Item marked returned.' : 'Claim rejected.', 'info');
+        fetchMyItems();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    // 7. Notifications (Supabase & REST Dual-Engine)
+    async function handleFoundThisClick(itemId) {
+      if (!state.token || !state.user) {
+        openAuthModal('login');
+        showToast('Please sign in to notify the owner.', 'info');
+        return;
+      }
+
+      const item = state.items.find(i => String(i.id) === String(itemId));
+      if (item && item.user_id && String(item.user_id) === String(state.user.id)) {
+        showToast('You cannot report finding your own lost item.', 'error');
+        return;
+      }
+
+      const itemTitle = item ? item.title : 'this item';
+      const confirmed = confirm(`Are you sure you found this item? A notification will be sent to the owner.`);
+      if (!confirmed) return;
+
+      const sb = getSupabase();
+
+      try {
+        if (sb && item && item.user_id) {
+          // Check for duplicate notice from same finder for this item
+          const finderName = state.user.name || 'Someone';
+          const { data: dupData } = await sb
+            .from('notifications')
+            .select('id')
+            .eq('user_id', item.user_id)
+            .eq('item_id', item.id)
+            .eq('finder_name', finderName);
+
+          if (dupData && dupData.length > 0) {
+            showToast(`You have already notified the owner about "${itemTitle}".`, 'info');
+            return;
+          }
+
+          // Format notification: "Someone may have found your lost Black Watch. Check the report for more details."
+          const msg = `${finderName} may have found your lost '${item.title}'. Check the report for more details.`;
+          const { error: notifErr } = await sb.from('notifications').insert({
+            user_id: item.user_id,
+            item_id: item.id,
+            finder_name: finderName,
+            message: msg,
+            is_read: false
+          });
+
+          if (!notifErr) {
+            showToast(`Notification sent to the owner of "${itemTitle}"!`, 'success');
+            return;
+          }
+        }
+
+        // Local Backend REST Fallback
+        const res = await fetch(`${API_BASE}/api/items/${itemId}/found-notice`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${state.token}`
+          }
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Failed to send notification');
+
+        if (data.already_notified) {
+          showToast(data.message, 'info');
+        } else {
+          showToast(data.message || `Notification sent to the owner of "${itemTitle}"!`, 'success');
+        }
+      } catch (err) {
+        showToast(err.message || 'Error sending notification', 'error');
+      }
+    }
+
+    async function fetchNotifications() {
+      if (!state.token || !state.user) return;
+      const sb = getSupabase();
+
+      try {
+        if (sb && state.user?.id) {
+          const { data: sbNotes, error } = await sb
+            .from('notifications')
+            .select('*, item:items(id, title, category, type, status, location, date, image_url)')
+            .eq('user_id', state.user.id)
+            .order('created_at', { ascending: false });
+
+          if (!error && sbNotes) {
+            state.notifications = sbNotes;
+            const unread = sbNotes.filter(n => !n.is_read).length;
+            const badge = document.getElementById('notif-badge');
+            if (badge) {
+              if (unread > 0) badge.classList.remove('hidden');
+              else badge.classList.add('hidden');
+            }
+            renderNotifications(sbNotes);
+            return;
+          }
+        }
+
+        // Local Backend REST Fallback
+        const res = await fetch(`${API_BASE}/api/notifications`, {
+          headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        const notes = await res.json();
+        state.notifications = notes;
+        const unread = notes.filter(n => !n.is_read).length;
+        const badge = document.getElementById('notif-badge');
+        if (badge) {
+          if (unread > 0) badge.classList.remove('hidden');
+          else badge.classList.add('hidden');
+        }
+        renderNotifications(notes);
+      } catch (err) {
+        console.error('Fetch notifications error:', err);
+      }
+    }
+
+    function renderNotifications(notes) {
+      const list = document.getElementById('notif-list');
+      if (!notes || notes.length === 0) {
+        list.innerHTML = `<div class="text-center py-12 text-slate-400 text-xs">No notifications.</div>`;
+        return;
+      }
+
+      list.innerHTML = notes.map(n => {
+        const timeStr = n.created_at ? new Date(n.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+        const isUnread = !n.is_read;
+        const finder = n.finder_name ? escapeHtml(n.finder_name) : null;
+        const itemTitle = n.item?.title ? escapeHtml(n.item.title) : (n.item_id ? `Item #${n.item_id}` : null);
+
+        return `
+          <div onclick="onNotificationClick(${n.id}, ${n.item_id || 'null'})"
+               class="p-3.5 rounded-2xl cursor-pointer transition-all duration-200 border space-y-2.5 ${
+                 isUnread
+                   ? 'bg-teal-50/80 dark:bg-teal-950/40 border-teal-200 dark:border-teal-800 shadow-sm hover:border-teal-400'
+                   : 'bg-slate-50/80 dark:bg-slate-950/60 border-slate-100 dark:border-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-900'
+               }">
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex items-center space-x-2">
+                <div class="w-6 h-6 rounded-lg ${isUnread ? 'bg-teal-500 text-white shadow-sm' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'} flex items-center justify-center shrink-0">
+                  <i data-lucide="${isUnread ? 'bell-ring' : 'bell'}" class="w-3.5 h-3.5"></i>
+                </div>
+                <div class="flex items-center space-x-1.5">
+                  <span class="text-xs font-bold ${isUnread ? 'text-teal-950 dark:text-teal-200' : 'text-slate-700 dark:text-slate-300'}">
+                    ${isUnread ? 'New Notice' : 'Notice'}
+                  </span>
+                  ${isUnread ? `<span class="w-2 h-2 rounded-full bg-teal-500 animate-pulse inline-block"></span>` : ''}
+                </div>
+              </div>
+              <span class="text-[10px] text-slate-400 dark:text-slate-500 font-medium whitespace-nowrap">${timeStr}</span>
+            </div>
+
+            <p class="text-xs ${isUnread ? 'text-slate-900 dark:text-slate-100 font-semibold' : 'text-slate-600 dark:text-slate-400 font-normal'} leading-relaxed">
+              ${escapeHtml(n.message)}
+            </p>
+
+            ${(finder || itemTitle || n.item_id) ? `
+              <div class="pt-2 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between text-[11px]">
+                <div class="flex flex-col text-slate-500 dark:text-slate-400 truncate pr-2">
+                  ${finder ? `<span>Finder: <strong class="text-slate-700 dark:text-slate-300">${finder}</strong></span>` : ''}
+                  ${itemTitle ? `<span>Item: <strong class="text-slate-700 dark:text-slate-300">${itemTitle}</strong></span>` : ''}
+                </div>
+                ${n.item_id ? `
+                  <button type="button" onclick="event.stopPropagation(); onNotificationClick(${n.id}, ${n.item_id})"
+                          class="shrink-0 px-2.5 py-1 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-bold text-[11px] shadow-sm flex items-center space-x-1 transition">
+                    <span>View Item</span>
+                    <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                  </button>
+                ` : ''}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    async function onNotificationClick(notificationId, itemId) {
+      if (!state.token) return;
+      const sb = getSupabase();
+
+      // Mark as read
+      try {
+        if (sb) {
+          await sb.from('notifications').update({ is_read: true }).eq('id', notificationId);
+        } else {
+          await fetch(`${API_BASE}/api/notifications/${notificationId}/read`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${state.token}` }
+          });
+        }
+        fetchNotifications();
+      } catch (err) {
+        console.error('Mark read error:', err);
+      }
+
+      // If linked to an item, close drawer and open details modal
+      if (itemId) {
+        closeModal('modal-notifications');
+        if (!state.items || state.items.length === 0) {
+          await fetchItems();
+        }
+        openProductDetails(itemId);
+      }
+    }
+
+    function toggleNotificationsModal() {
+      const modal = document.getElementById('modal-notifications');
+      modal.classList.toggle('hidden');
+      if (!modal.classList.contains('hidden')) {
+        fetchNotifications();
+        setTimeout(() => lucide.createIcons(), 50);
+      }
+    }
+
+    async function markAllNotificationsRead() {
+      if (!state.token) return;
+      const sb = getSupabase();
+
+      try {
+        if (sb && state.user?.id) {
+          await sb.from('notifications').update({ is_read: true }).eq('user_id', state.user.id).eq('is_read', false);
+        } else {
+          await fetch(`${API_BASE}/api/notifications/read-all`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${state.token}` }
+          });
+        }
+        fetchNotifications();
+      } catch (err) {
+        console.error('Mark all read error:', err);
+      }
+    }
+
+    // Auto-poll notifications every 10s when user is logged in
+    setInterval(() => {
+      if (state.token && state.user) {
+        fetchNotifications();
+      }
+    }, 10000);
+
+    // 8. Feedback & Stories Integration
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function openFeedbackModal() {
+      if (!state.token || !state.user) {
+        openAuthModal('login');
+        showToast('Please sign in to submit feedback.', 'info');
+        return;
+      }
+      const userInfo = document.getElementById('feedback-user-info');
+      if (userInfo) {
+        userInfo.textContent = `Submitting as: ${state.user.name} (${state.user.email})`;
+      }
+      setFeedbackRating(5);
+      const msgInput = document.getElementById('feedback-message');
+      if (msgInput) msgInput.value = '';
+      document.getElementById('modal-feedback').classList.remove('hidden');
+      setTimeout(() => lucide.createIcons(), 50);
+    }
+
+    function setFeedbackRating(val) {
+      val = Math.max(1, Math.min(5, parseInt(val, 10) || 5));
+      const valInput = document.getElementById('feedback-rating-val');
+      if (valInput) valInput.value = val;
+
+      const starButtons = document.querySelectorAll('#star-rating-container .star-btn');
+      starButtons.forEach(btn => {
+        const starVal = parseInt(btn.getAttribute('data-val'), 10);
+        const icon = btn.querySelector('svg') || btn.querySelector('i');
+        if (starVal <= val) {
+          btn.className = 'star-btn p-1 text-amber-400 hover:scale-110 transition';
+          if (icon) {
+            icon.classList.add('fill-amber-400', 'text-amber-400');
+            icon.classList.remove('text-slate-300', 'dark:text-slate-700', 'fill-none');
+          }
+        } else {
+          btn.className = 'star-btn p-1 text-slate-300 dark:text-slate-700 hover:text-amber-400 transition';
+          if (icon) {
+            icon.classList.remove('fill-amber-400', 'text-amber-400');
+            icon.classList.add('text-slate-300', 'dark:text-slate-700');
+          }
+        }
+      });
+
+      const ratingLabel = document.getElementById('rating-label');
+      if (ratingLabel) {
+        const labels = {
+          1: '1 Star',
+          2: '2 Stars',
+          3: '3 Stars',
+          4: '4 Stars',
+          5: '5 Stars'
+        };
+        ratingLabel.textContent = labels[val] || `${val} Stars`;
+      }
+    }
+
+    async function handleFeedbackSubmit(e) {
+      e.preventDefault();
+      if (!state.token || !state.user) {
+        openAuthModal('login');
+        showToast('Please sign in to submit feedback', 'error');
+        return;
+      }
+
+      const rating = parseInt(document.getElementById('feedback-rating-val')?.value, 10) || 5;
+      const message = document.getElementById('feedback-message')?.value?.trim();
+
+      if (!message) {
+        showToast('Feedback message is required.', 'error');
+        return;
+      }
+
+      const submitBtn = document.getElementById('btn-submit-feedback');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitting...';
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/api/feedback`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${state.token}`
+          },
+          body: JSON.stringify({ rating, message })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Failed to submit feedback');
+
+        closeModal('modal-feedback');
+        showToast('Thank you! Your feedback has been submitted successfully.', 'success');
+        document.getElementById('feedback-form')?.reset();
+
+        // Refresh dynamic stories list
+        fetchStories();
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit Feedback';
+        }
+      }
+    }
+
+    async function fetchStories() {
+      const grid = document.getElementById('stories-grid');
+      if (!grid) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/feedback`);
+        if (!res.ok) throw new Error('Failed to load stories');
+        const stories = await res.json();
+        renderStories(stories);
+      } catch (err) {
+        console.error('Stories fetch error:', err);
+      }
+    }
+
+    function renderStories(stories) {
+      const grid = document.getElementById('stories-grid');
+      if (!grid) return;
+
+      if (!stories || stories.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full py-14 text-center space-y-3 bg-slate-50 dark:bg-slate-900/40 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800 p-6">
+            <div class="w-12 h-12 mx-auto rounded-2xl bg-teal-50 dark:bg-teal-950 flex items-center justify-center text-teal-600 dark:text-teal-400">
+              <i data-lucide="message-square" class="w-6 h-6"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-900 dark:text-white">No stories submitted yet</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">Be the first to share your experience and feedback with lost2found!</p>
+            <button onclick="openFeedbackModal()" class="mt-2 gradient-btn px-4 py-2 rounded-xl text-xs font-semibold text-white shadow-sm inline-flex items-center space-x-1.5">
+              <i data-lucide="star" class="w-3.5 h-3.5"></i>
+              <span>Give Feedback</span>
+            </button>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      grid.innerHTML = stories.map(s => {
+        const dateFormatted = s.created_at ? new Date(s.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '';
+        
+        let starsHtml = '';
+        for (let i = 1; i <= 5; i++) {
+          if (i <= s.rating) {
+            starsHtml += `<i data-lucide="star" class="w-4 h-4 text-amber-400 fill-amber-400"></i>`;
+          } else {
+            starsHtml += `<i data-lucide="star" class="w-4 h-4 text-slate-300 dark:text-slate-700"></i>`;
+          }
+        }
+
+        const initial = ((s.user_name || 'U').charAt(0)).toUpperCase();
+
+        return `
+          <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 theme-card flex flex-col justify-between">
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-1">
+                  ${starsHtml}
+                </div>
+                <span class="text-[11px] text-slate-400 dark:text-slate-500 font-medium">${dateFormatted}</span>
+              </div>
+              <p class="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-normal">
+                "${escapeHtml(s.message)}"
+              </p>
+            </div>
+            <div class="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+              <div class="flex items-center space-x-2.5">
+                <div class="w-7 h-7 rounded-xl bg-gradient-to-br from-blue-600 to-teal-500 flex items-center justify-center text-white text-[11px] font-bold shadow-sm">
+                  ${escapeHtml(initial)}
+                </div>
+                <span class="text-xs font-semibold text-slate-900 dark:text-white">${escapeHtml(s.user_name || 'Community Member')}</span>
+              </div>
+              <span class="text-[10px] font-semibold text-teal-600 dark:text-teal-400 uppercase tracking-wider bg-teal-50 dark:bg-teal-950/60 px-2 py-0.5 rounded-md">Verified User</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    // 9. Admin Portal
+    async function fetchAdminDashboard() {
+      if (!state.token || state.user?.role !== 'admin') return;
+      try {
+        const [statsRes, itemsRes] = await Promise.all([
+          fetch(`${API_BASE}/api/admin/stats`, { headers: { 'Authorization': `Bearer ${state.token}` } }),
+          fetch(`${API_BASE}/api/admin/items`, { headers: { 'Authorization': `Bearer ${state.token}` } })
+        ]);
+        const stats = await statsRes.json();
+        const items = await itemsRes.json();
+
+        document.getElementById('admin-stats-grid').innerHTML = `
+          <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800">
+            <span class="text-[10px] uppercase font-bold text-slate-400">Total Reports</span>
+            <div class="text-2xl font-extrabold text-slate-900 dark:text-white mt-1">${stats.total_reports}</div>
+          </div>
+          <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800">
+            <span class="text-[10px] uppercase font-bold text-amber-500">Lost</span>
+            <div class="text-2xl font-extrabold text-amber-600 dark:text-amber-400 mt-1">${stats.total_lost}</div>
+          </div>
+          <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800">
+            <span class="text-[10px] uppercase font-bold text-teal-500">Found</span>
+            <div class="text-2xl font-extrabold text-teal-600 dark:text-teal-400 mt-1">${stats.total_found}</div>
+          </div>
+          <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800">
+            <span class="text-[10px] uppercase font-bold text-blue-500">AI Matches</span>
+            <div class="text-2xl font-extrabold text-blue-600 dark:text-blue-400 mt-1">${stats.total_matches}</div>
+          </div>
+          <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800">
+            <span class="text-[10px] uppercase font-bold text-emerald-500">Returned</span>
+            <div class="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">${stats.total_returned}</div>
+          </div>
+          <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800">
+            <span class="text-[10px] uppercase font-bold text-slate-400">Users</span>
+            <div class="text-2xl font-extrabold text-slate-900 dark:text-white mt-1">${stats.total_users}</div>
+          </div>
+        `;
+
+        document.getElementById('admin-items-tbody').innerHTML = items.map(item => `
+          <tr class="hover:bg-slate-50 dark:hover:bg-slate-950/50 transition">
+            <td class="py-3 px-3 font-semibold text-slate-900 dark:text-white">${item.title}</td>
+            <td class="py-3 px-3 uppercase text-[10px] font-bold ${item.type === 'lost' ? 'text-amber-600' : 'text-teal-600'}">${item.type}</td>
+            <td class="py-3 px-3">${item.category}</td>
+            <td class="py-3 px-3 text-slate-500">${item.location} <br/><span class="text-[10px]">${item.date}</span></td>
+            <td class="py-3 px-3">${item.contact ? `${item.contact.name} (${item.contact.email})` : '—'}</td>
+            <td class="py-3 px-3 text-amber-600 max-w-xs truncate">${item.secret_detail || '—'}</td>
+            <td class="py-3 px-3 font-semibold uppercase text-[10px]">${item.status}</td>
+            <td class="py-3 px-3 text-right">
+              <button onclick="adminDeleteItem(${item.id})" class="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg transition" title="Delete listing">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </td>
+          </tr>
+        `).join('');
+
+        lucide.createIcons();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function adminDeleteItem(itemId) {
+      if (!confirm('Are you sure you want to delete this listing?')) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/items/${itemId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        if (!res.ok) throw new Error('Delete failed');
+        showToast('Item deleted', 'info');
+        fetchAdminDashboard();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    // 9. Toast Notification Helper
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const colors = {
+        success: 'bg-teal-600 text-white',
+        error: 'bg-rose-600 text-white',
+        info: 'bg-blue-600 text-white'
+      };
+      toast.className = `p-3 px-4 rounded-2xl shadow-xl text-xs font-semibold ${colors[type] || colors.info} transition-all duration-300 transform translate-y-2 pointer-events-auto`;
+      toast.textContent = msg;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-4');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    // Initialize Theme, Auth, and Router
+    document.addEventListener('DOMContentLoaded', () => {
+      applyTheme(state.theme);
+      updateAuthUI();
+      navigate('home');
+    });
+  </script>
+</body>
+</html>
