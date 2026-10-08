@@ -72,7 +72,8 @@ elif is_serverless:
     engine = create_engine(
         RESOLVED_DB_URL,
         poolclass=NullPool,
-        pool_pre_ping=True
+        pool_pre_ping=True,
+        connect_args={"options": "-c search_path=public"}
     )
 else:
     engine = create_engine(
@@ -80,7 +81,8 @@ else:
         pool_pre_ping=True,
         pool_recycle=300,
         pool_size=5,
-        max_overflow=10
+        max_overflow=10,
+        connect_args={"options": "-c search_path=public"}
     )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
