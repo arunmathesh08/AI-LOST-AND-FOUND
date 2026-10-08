@@ -69,12 +69,26 @@ def seed_database():
             password_hash=hash_password("user234"),
             role="user"
         )
+        demo_user1 = User(
+            name="Demo User One",
+            email="demo1@example.com",
+            password_hash=hash_password("Demo@12345"),
+            role="user"
+        )
+        demo_user2 = User(
+            name="Demo User Two",
+            email="demo2@example.com",
+            password_hash=hash_password("Demo@12345"),
+            role="user"
+        )
 
-        db.add_all([admin, user1, user2])
+        db.add_all([admin, user1, user2, demo_user1, demo_user2])
         db.commit()
         db.refresh(admin)
         db.refresh(user1)
         db.refresh(user2)
+        db.refresh(demo_user1)
+        db.refresh(demo_user2)
 
         # 2. Create Placeholder Images
         print("[+] Generating Placeholder Images...")
