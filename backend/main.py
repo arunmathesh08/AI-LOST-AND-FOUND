@@ -6,6 +6,7 @@ from typing import Optional, List
 from fastapi import (
     FastAPI, Depends, HTTPException, status, UploadFile, File, Form, Query
 )
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, EmailStr
@@ -26,6 +27,7 @@ from backend.ai_service import (
 # Initialize database directory & uploads
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOADS_DIR = os.path.join(BASE_DIR, "uploads")
+FRONTEND_DIR = os.path.join(os.path.dirname(BASE_DIR), "frontend")
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 
 
@@ -90,6 +92,32 @@ def get_public_config():
         "supabase_url": os.getenv("SUPABASE_URL", "https://gdngcjfgajkjdjosgtlc.supabase.co"),
         "supabase_anon_key": anon_key
     }
+
+
+@app.get("/", include_in_schema=False)
+def serve_root():
+    index_file = os.path.join(FRONTEND_DIR, "index.html")
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
+    return RedirectResponse(url="/docs")
+
+
+@app.get("/supabase-config.js", include_in_schema=False)
+@app.get("/app/supabase-config.js", include_in_schema=False)
+def serve_supabase_config():
+    cfg_file = os.path.join(FRONTEND_DIR, "supabase-config.js")
+    if os.path.exists(cfg_file):
+        return FileResponse(cfg_file, media_type="application/javascript")
+    return {"error": "Not found"}
+
+
+@app.get("/app", include_in_schema=False)
+@app.get("/app/index.html", include_in_schema=False)
+def serve_app():
+    index_file = os.path.join(FRONTEND_DIR, "index.html")
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
+    return RedirectResponse(url="/")
 
 
 # ==========================================
