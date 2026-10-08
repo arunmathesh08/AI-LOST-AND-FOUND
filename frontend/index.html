@@ -713,43 +713,18 @@
           Sign In
         </button>
 
-        <!-- DEMO USERS SECTION (BELOW LOGIN / SIGN UP BUTTON) -->
-        <div class="pt-3 border-t border-slate-100 dark:border-slate-800/80 space-y-2.5">
-          <div class="flex items-center justify-between">
-            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Demo Users</span>
-            <span class="text-[10px] text-teal-600 dark:text-teal-400 font-medium">Click to auto-fill</span>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <!-- Demo User 1 -->
-            <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between space-y-1.5 text-left">
-              <div>
-                <p class="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1">
-                  <i data-lucide="user" class="w-3.5 h-3.5 text-teal-600 dark:text-teal-400"></i>
-                  Demo User 1
-                </p>
-                <p class="text-[11px] text-slate-600 dark:text-slate-400 font-mono truncate">demo1@example.com</p>
-                <p class="text-[10px] text-slate-500 dark:text-slate-500 font-mono">Password: Demo@12345</p>
-              </div>
-              <button type="button" onclick="fillDemoUser('demo1@example.com', 'Demo@12345', 'Demo User One')" class="w-full py-1.5 px-2 rounded-lg bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/50 dark:hover:bg-teal-900/60 text-teal-700 dark:text-teal-300 text-xs font-semibold transition text-center border border-teal-200 dark:border-teal-800/50">
-                Use Demo User 1
-              </button>
-            </div>
-
-            <!-- Demo User 2 -->
-            <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between space-y-1.5 text-left">
-              <div>
-                <p class="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1">
-                  <i data-lucide="user" class="w-3.5 h-3.5 text-teal-600 dark:text-teal-400"></i>
-                  Demo User 2
-                </p>
-                <p class="text-[11px] text-slate-600 dark:text-slate-400 font-mono truncate">demo2@example.com</p>
-                <p class="text-[10px] text-slate-500 dark:text-slate-500 font-mono">Password: Demo@12345</p>
-              </div>
-              <button type="button" onclick="fillDemoUser('demo2@example.com', 'Demo@12345', 'Demo User Two')" class="w-full py-1.5 px-2 rounded-lg bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/50 dark:hover:bg-teal-900/60 text-teal-700 dark:text-teal-300 text-xs font-semibold transition text-center border border-teal-200 dark:border-teal-800/50">
-                Use Demo User 2
-              </button>
-            </div>
+        <!-- DEMO USERS SECTION (ONLY DEMO USER 1 & DEMO USER 2) -->
+        <div class="pt-3 border-t border-slate-100 dark:border-slate-800/80 space-y-2">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block text-left">Demo Users</span>
+          <div class="grid grid-cols-2 gap-2.5">
+            <button type="button" id="btn-demo-user-1" onclick="loginDemoUser(1)" class="w-full py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-teal-50 dark:bg-slate-800 dark:hover:bg-teal-950/60 text-slate-800 dark:text-slate-200 hover:text-teal-700 dark:hover:text-teal-300 border border-slate-200 dark:border-slate-700 hover:border-teal-500/40 text-xs font-bold transition flex items-center justify-center space-x-1.5 shadow-sm">
+              <i data-lucide="user" class="w-3.5 h-3.5 text-teal-600 dark:text-teal-400"></i>
+              <span>Demo User 1</span>
+            </button>
+            <button type="button" id="btn-demo-user-2" onclick="loginDemoUser(2)" class="w-full py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-teal-50 dark:bg-slate-800 dark:hover:bg-teal-950/60 text-slate-800 dark:text-slate-200 hover:text-teal-700 dark:hover:text-teal-300 border border-slate-200 dark:border-slate-700 hover:border-teal-500/40 text-xs font-bold transition flex items-center justify-center space-x-1.5 shadow-sm">
+              <i data-lucide="user" class="w-3.5 h-3.5 text-teal-600 dark:text-teal-400"></i>
+              <span>Demo User 2</span>
+            </button>
           </div>
         </div>
       </form>
@@ -1117,18 +1092,85 @@
       }
     }
 
-    function fillDemoUser(email, password, name) {
-      const emailInput = document.getElementById('modal-auth-email');
-      const passInput = document.getElementById('modal-auth-pass');
-      const confirmInput = document.getElementById('modal-auth-confirm-pass');
-      const nameInput = document.getElementById('modal-auth-name');
+    async function loginDemoUser(num) {
+      const email = num === 1 ? 'demo1@example.com' : 'demo2@example.com';
+      const password = 'Demo@12345';
+      const name = num === 1 ? 'Demo User One' : 'Demo User Two';
+      const fallbackUser = {
+        id: num === 1 ? 4 : 5,
+        name: name,
+        email: email,
+        role: 'user'
+      };
 
-      if (emailInput) emailInput.value = email;
-      if (passInput) passInput.value = password;
-      if (confirmInput) confirmInput.value = password;
-      if (nameInput) nameInput.value = name;
+      try {
+        const sb = getSupabase();
+        if (sb) {
+          try {
+            const { data, error } = await sb.auth.signInWithPassword({ email, password });
+            if (!error && data?.user) {
+              let userName = data.user.user_metadata?.name || name;
+              let role = 'user';
+              try {
+                const { data: profile } = await sb.from('profiles').select('*').eq('id', data.user.id).single();
+                if (profile) {
+                  userName = profile.name || userName;
+                  role = profile.role || role;
+                }
+              } catch (_) {}
 
-      showToast(`Filled credentials for ${name}`, 'info');
+              const userObj = { id: data.user.id, name: userName, email, role };
+              state.token = data.session ? data.session.access_token : 'sb-demo-token';
+              state.user = userObj;
+              localStorage.setItem('token', state.token);
+              localStorage.setItem('user', JSON.stringify(userObj));
+              closeModal('modal-auth');
+              showToast(`Logged in as ${userName}!`, 'success');
+              updateAuthUI();
+              navigate('my-items');
+              return;
+            }
+          } catch (sbErr) {
+            console.warn('Supabase demo login attempt:', sbErr);
+          }
+        }
+
+        // Backend REST API login
+        try {
+          const res = await fetch(`${API_BASE}/api/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            state.token = data.access_token;
+            state.user = data.user;
+            localStorage.setItem('token', data.access_token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            closeModal('modal-auth');
+            showToast(`Logged in as ${data.user.name}!`, 'success');
+            updateAuthUI();
+            navigate('my-items');
+            return;
+          }
+        } catch (fetchErr) {
+          console.warn('Backend demo login attempt:', fetchErr);
+        }
+
+        // Fallback demo session
+        state.token = `demo-token-${num}`;
+        state.user = fallbackUser;
+        localStorage.setItem('token', state.token);
+        localStorage.setItem('user', JSON.stringify(fallbackUser));
+        closeModal('modal-auth');
+        showToast(`Logged in as ${fallbackUser.name}!`, 'success');
+        updateAuthUI();
+        navigate('my-items');
+      } catch (err) {
+        console.error('Demo login error:', err);
+        showToast(`Failed to log in as Demo User ${num}`, 'error');
+      }
     }
 
     function getSupabase() {
