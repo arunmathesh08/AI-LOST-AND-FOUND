@@ -26,6 +26,11 @@ htmlcov/
 backend/uploads/*
 !backend/uploads/.gitkeep
 
+# Node & Frontend Build
+node_modules/
+dist/
+.vite/
+
 # IDE & OS Files
 .idea/
 .vscode/
