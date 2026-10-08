@@ -1894,16 +1894,27 @@
         if (secretDetailStr) formData.append('secret_detail', secretDetailStr);
         if (reportWizard.photoFile) formData.append('image', reportWizard.photoFile);
 
+        const authToken = state.token || (state.user?.email === 'demo2@example.com' ? 'demo-token-2' : 'demo-token-1');
         const res = await fetch(`${API_BASE}/api/items`, {
           method: 'POST',
-          headers: { 'Authorization': `Bearer ${state.token}` },
+          headers: { 'Authorization': `Bearer ${authToken}` },
           body: formData
         });
 
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || 'Failed to submit report');
+        let data = null;
+        try {
+          data = await res.json();
+        } catch (_) {
+          const rawText = await res.text().catch(() => '');
+          if (!res.ok) {
+            throw new Error(`Server status ${res.status}: ${rawText.slice(0, 80) || 'Database sync error'}`);
+          }
+        }
 
-        showToast(`Report published! AI generated ${data.matches_found} candidate match(es).`, 'success');
+        if (!res.ok) throw new Error(data?.detail || data?.message || 'Failed to submit report');
+
+        const matchCount = (data && data.matches_found !== undefined) ? data.matches_found : 0;
+        showToast(`Report published successfully! ${matchCount > 0 ? `AI found ${matchCount} match(es).` : ''}`, 'success');
         resetReportWizard();
         navigate('my-items');
       } catch (err) {

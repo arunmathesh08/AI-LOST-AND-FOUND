@@ -19,9 +19,18 @@ def load_ai_models():
     if _initialized:
         return
 
-    # In serverless environments (Vercel), skip heavy model weight downloads to prevent cold-start timeouts
-    if os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
-        logger.info("Serverless environment detected (Vercel): Using lightweight vectorizer.")
+    # In serverless environments (Vercel, AWS Lambda), skip heavy model weight downloads to prevent cold-start timeouts
+    is_serverless_env = any([
+        os.getenv("VERCEL"),
+        os.getenv("VERCEL_ENV"),
+        os.getenv("VERCEL_URL"),
+        os.getenv("AWS_LAMBDA_FUNCTION_NAME"),
+        os.getenv("LAMBDA_TASK_ROOT"),
+        os.getenv("NOW_REGION"),
+        os.getenv("SERVERLESS")
+    ])
+    if is_serverless_env:
+        logger.info("Serverless environment detected: Using lightweight vectorizer.")
         _initialized = True
         return
 
